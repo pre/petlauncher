@@ -1,0 +1,42 @@
+{
+  "6f1e1c52-0a6e-4a51-9d0e-1a2b3c4d5e01": {
+    "added": 1700000000.25,
+    "cmd": "https://search.example.com/?q=%s",
+    "icon": "/usr/share/ulauncher/icons/google-search.png",
+    "id": "6f1e1c52-0a6e-4a51-9d0e-1a2b3c4d5e01",
+    "is_default_search": true,
+    "keyword": "s",
+    "name": "Web search",
+    "run_without_argument": false
+  },
+  "6f1e1c52-0a6e-4a51-9d0e-1a2b3c4d5e02": {
+    "added": 0,
+    "cmd": "https://dictionary.example.com/search/%s",
+    "icon": "",
+    "id": "6f1e1c52-0a6e-4a51-9d0e-1a2b3c4d5e02",
+    "is_default_search": false,
+    "keyword": "d",
+    "name": "Online dictionary",
+    "run_without_argument": false
+  },
+  "6f1e1c52-0a6e-4a51-9d0e-1a2b3c4d5e03": {
+    "added": 0,
+    "cmd": "#!/bin/sh\nexec example-browser \"https://review.example.com/pull/$1\"",
+    "icon": "",
+    "id": "6f1e1c52-0a6e-4a51-9d0e-1a2b3c4d5e03",
+    "is_default_search": false,
+    "keyword": "rv",
+    "name": "Review in the other browser",
+    "run_without_argument": false
+  },
+  "6f1e1c52-0a6e-4a51-9d0e-1a2b3c4d5e04": {
+    "added": 0,
+    "cmd": "http://localhost:9999/#board",
+    "icon": "~/Pictures/board.png",
+    "id": "6f1e1c52-0a6e-4a51-9d0e-1a2b3c4d5e04",
+    "is_default_search": false,
+    "keyword": "board",
+    "name": "Local board",
+    "run_without_argument": true
+  }
+}
