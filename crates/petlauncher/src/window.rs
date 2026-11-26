@@ -494,7 +494,10 @@ impl LauncherWindow {
                     .wrap_mode(gtk::pango::WrapMode::WordChar)
                     .xalign(0.0)
                     .hexpand(true)
-                    .max_width_chars(1)
+                    // GTK can measure the height before it knows the width.
+                    // Then the label has its natural width, so a small
+                    // maximum gives one line for each word.
+                    .max_width_chars(60)
                     .selectable(false)
                     .build(),
             );

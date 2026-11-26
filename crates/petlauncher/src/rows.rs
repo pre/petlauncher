@@ -14,7 +14,7 @@ pub fn row_widget(row: &Row) -> gtk::ListBoxRow {
     let title = label(&row.title, pango::EllipsizeMode::End, "result-title");
     let subtitle = label(
         &row.subtitle,
-        pango::EllipsizeMode::Middle,
+        subtitle_ellipsis(row.kind),
         "result-subtitle",
     );
     subtitle.add_css_class("dim-label");
@@ -34,6 +34,16 @@ pub fn row_widget(row: &Row) -> gtk::ListBoxRow {
         .child(&content)
         .focusable(false)
         .build()
+}
+
+/// The subtitle of a file or a directory is a path: the ellipsis is in its
+/// middle, so the start and the file name stay. A different subtitle is a
+/// text with its ellipsis at the end.
+fn subtitle_ellipsis(kind: RowKind) -> pango::EllipsizeMode {
+    match kind {
+        RowKind::File | RowKind::Directory => pango::EllipsizeMode::Middle,
+        _ => pango::EllipsizeMode::End,
+    }
 }
 
 /// A label that takes the width of the row and does not make the window
@@ -67,4 +77,29 @@ fn file_icon(path: &Path, kind: RowKind) -> gio::Icon {
     }
     let (content_type, _) = gio::content_type_guess(Some(path), None);
     gio::content_type_get_icon(&content_type)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn a_path_is_cut_in_its_middle_and_a_text_at_its_end() {
+        assert_eq!(
+            subtitle_ellipsis(RowKind::File),
+            pango::EllipsizeMode::Middle
+        );
+        assert_eq!(
+            subtitle_ellipsis(RowKind::Directory),
+            pango::EllipsizeMode::Middle
+        );
+        assert_eq!(
+            subtitle_ellipsis(RowKind::Application),
+            pango::EllipsizeMode::End
+        );
+        assert_eq!(
+            subtitle_ellipsis(RowKind::Dictionary),
+            pango::EllipsizeMode::End
+        );
+    }
 }
