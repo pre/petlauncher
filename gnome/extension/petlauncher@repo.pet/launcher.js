@@ -23,18 +23,30 @@ export function isLauncher(appId, title) {
 }
 
 /**
- * The top left corner that puts a window at the center of a work area. When
- * the window is larger than the work area, its top left corner stays in it.
+ * The height of the launcher frame with no rows, in logical pixels. The
+ * program makes the launcher this high when it has no rows.
+ */
+export const COLLAPSED_HEIGHT = 64;
+
+/**
+ * The top left corner of the launcher frame. The launcher is at the
+ * horizontal center of the work area, and its top is where the top of a
+ * collapsed launcher is at the vertical center. Thus the query line has the
+ * same place for each height of the window, and the rows go down from it.
+ * A launcher that goes below the work area moves up, and a launcher that is
+ * larger than the work area has its top left corner in the work area.
  *
  * @param {{width: number, height: number}} size - the frame size of the window
  * @param {{x: number, y: number, width: number, height: number}} workArea -
  *   the monitor without the top bar
  * @returns {{x: number, y: number}}
  */
-export function centeredPosition(size, workArea) {
+export function launcherPosition(size, workArea) {
+    const top = workArea.y + Math.max(0, Math.floor((workArea.height - COLLAPSED_HEIGHT) / 2));
+    const lowestTop = workArea.y + Math.max(0, workArea.height - size.height);
     return {
         x: workArea.x + Math.max(0, Math.floor((workArea.width - size.width) / 2)),
-        y: workArea.y + Math.max(0, Math.floor((workArea.height - size.height) / 2)),
+        y: Math.min(top, lowestTop),
     };
 }
 

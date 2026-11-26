@@ -1,11 +1,12 @@
 // The GNOME part of petlauncher: it puts the launcher window at the center of
-// the monitor with the pointer each time the window shows, and it adds the
-// petlauncher icon to the top bar. docs/gnome-extension.md gives the contract
-// with the program and the test results.
+// the monitor with the pointer each time the window shows, with the query line
+// at the same place for each window height. It also adds the petlauncher icon
+// to the top bar. docs/gnome-extension.md gives the contract with the program
+// and the test results.
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import {Extension} from 'resource:///org/gnome/shell/extensions/extension.js';
 
-import {centeredPosition, isLauncher} from './launcher.js';
+import {isLauncher, launcherPosition} from './launcher.js';
 import {Tray} from './tray.js';
 
 export default class PetlauncherExtension extends Extension {
@@ -24,13 +25,13 @@ export default class PetlauncherExtension extends Extension {
 
     // GNOME emits `map` after the first buffer of the window and before it
     // paints the window. Mutter does a move that keeps the size at once, so
-    // the first painted frame is already at the center.
+    // the first painted frame is already at its place.
     _onMap(window) {
         if (!isLauncher(window.get_wm_class(), window.get_title()))
             return;
         const monitor = global.display.get_current_monitor();
         const workArea = window.get_work_area_for_monitor(monitor);
-        const {x, y} = centeredPosition(window.get_frame_rect(), workArea);
+        const {x, y} = launcherPosition(window.get_frame_rect(), workArea);
         window.move_frame(false, x, y);
         Main.activateWindow(window);
     }

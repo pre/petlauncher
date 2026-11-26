@@ -3,8 +3,9 @@ import System from 'system';
 
 import {
     APP_ID,
+    COLLAPSED_HEIGHT,
     LAUNCHER_TITLE,
-    centeredPosition,
+    launcherPosition,
     isLauncher,
     trayIconVisible,
 } from '../petlauncher@repo.pet/launcher.js';
@@ -21,6 +22,11 @@ function test(name, body) {
     }
 }
 
+function assert(condition, message) {
+    if (!condition)
+        throw new Error(message);
+}
+
 function assertEqual(actual, expected) {
     const a = JSON.stringify(actual);
     const e = JSON.stringify(expected);
@@ -28,38 +34,57 @@ function assertEqual(actual, expected) {
         throw new Error(`expected ${e}, got ${a}`);
 }
 
-test('centers the window in the work area of a large monitor', () => {
-    const size = {width: 750, height: 68};
+test('centers the collapsed launcher in the work area of a large monitor', () => {
+    const size = {width: 750, height: COLLAPSED_HEIGHT};
     const workArea = {x: 0, y: 32, width: 3008, height: 1660};
 
-    const position = centeredPosition(size, workArea);
+    const position = launcherPosition(size, workArea);
 
-    assertEqual(position, {x: 1129, y: 828});
+    assert(COLLAPSED_HEIGHT === 64, `COLLAPSED_HEIGHT is ${COLLAPSED_HEIGHT}`);
+    assertEqual(position, {x: 1129, y: 830});
 });
 
-test('centers the window in a monitor that is right of a different monitor', () => {
-    const size = {width: 750, height: 68};
+test('centers the collapsed launcher in a monitor that is right of a different monitor', () => {
+    const size = {width: 750, height: COLLAPSED_HEIGHT};
     const workArea = {x: 3008, y: 234, width: 1920, height: 1200};
 
-    const position = centeredPosition(size, workArea);
+    const position = launcherPosition(size, workArea);
 
-    assertEqual(position, {x: 3593, y: 800});
+    assertEqual(position, {x: 3593, y: 802});
+});
+
+test('puts a launcher with rows at the place of the collapsed launcher', () => {
+    const workArea = {x: 0, y: 32, width: 3008, height: 1660};
+    const collapsed = launcherPosition({width: 750, height: COLLAPSED_HEIGHT}, workArea);
+
+    const tall = launcherPosition({width: 750, height: 520}, workArea);
+
+    assertEqual(tall, collapsed);
+});
+
+test('moves a tall launcher up when its bottom is below the work area', () => {
+    const size = {width: 750, height: 700};
+    const workArea = {x: 0, y: 32, width: 1280, height: 1000};
+
+    const position = launcherPosition(size, workArea);
+
+    assertEqual(position, {x: 265, y: 332});
 });
 
 test('rounds a half pixel down', () => {
-    const size = {width: 751, height: 69};
-    const workArea = {x: 0, y: 0, width: 1920, height: 1200};
+    const size = {width: 751, height: COLLAPSED_HEIGHT};
+    const workArea = {x: 0, y: 0, width: 1920, height: 1201};
 
-    const position = centeredPosition(size, workArea);
+    const position = launcherPosition(size, workArea);
 
-    assertEqual(position, {x: 584, y: 565});
+    assertEqual(position, {x: 584, y: 568});
 });
 
 test('keeps the top left corner in the work area when the window is larger', () => {
     const size = {width: 2000, height: 1300};
     const workArea = {x: 3008, y: 234, width: 1920, height: 1200};
 
-    const position = centeredPosition(size, workArea);
+    const position = launcherPosition(size, workArea);
 
     assertEqual(position, {x: 3008, y: 234});
 });
