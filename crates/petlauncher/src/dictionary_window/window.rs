@@ -308,6 +308,14 @@ impl DictionaryWindow {
     }
 
     fn show_page(&self, page: &Page) {
+        // The new page removes the labels of the old page. GTK 4.14 writes
+        // a critical message when it removes the label with the focus, for
+        // example after a click on a link.
+        if gtk::prelude::RootExt::focus(&self.window)
+            .is_some_and(|focus| focus.is_ancestor(&self.stack))
+        {
+            self.search.grab_focus();
+        }
         let name = match page {
             Page::Word { word, entries } => {
                 let content = view::word_page(word, entries, &self.opener());

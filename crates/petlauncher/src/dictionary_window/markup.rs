@@ -30,7 +30,7 @@ const QUIET: &str = "fgalpha=\"62%\"";
 
 /// A small empty line between the parts of a meaning. A label has no
 /// spacing between its paragraphs.
-const GAP: &str = "\n<span size=\"3pt\"> </span>\n";
+const GAP: &str = "\n<span size=\"3pt\">\n</span>";
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Link {
@@ -307,6 +307,8 @@ mod tests {
         let text = plain_text(&meaning(&big, "big", false));
 
         let lines: Vec<&str> = text.lines().collect();
+        // The small gap is an empty line, so a copy has no extra spaces.
+        assert_eq!(lines[1], "", "{text}");
         assert!(lines[2].starts_with("Synonyms  synonym1, "), "{text}");
         assert!(lines[2].ends_with("synonym8     Opposite  small"), "{text}");
         assert_eq!(lines[3], "More general  size");
