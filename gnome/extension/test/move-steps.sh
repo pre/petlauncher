@@ -185,6 +185,90 @@ for run in 1 2 3; do
     sleep 0.5
 done
 
+# The setting window_position (ADR 0009). The expected frames are the rule
+# of launcher.js for an empty launcher of 750x64 in the work areas of the
+# test: 0,32 3008x1660 and 3008,0 1920x1200.
+set_setting() { # key value: as an editor does, a new file and a rename
+    {
+        echo "$1 = $2"
+        grep -v "^$1 = " "$config/settings.toml" || true
+    } >"$config/settings.toml.new"
+    mv "$config/settings.toml.new" "$config/settings.toml"
+    sleep 1
+}
+for choice in center:1129,830:3593,568 upper-third:1129,553:3593,368 top:1129,56:3593,24; do
+    IFS=: read -r name m0 m1 <<<"$choice"
+    set_setting window_position "\"$name\""
+    for run in 1 2 3; do
+        begin "position-$name-$run"
+        show_on 0
+        record "position-$name-m0-$run"
+        expect "$name on monitor 0" [ "$(place | tr ' ' ,)" == "$m0" ]
+        keys Escape
+        sleep 0.5
+        show_on 1
+        record "position-$name-m1-$run"
+        expect "$name on monitor 1" [ "$(place | tr ' ' ,)" == "$m1" ]
+        keys Escape
+        sleep 0.5
+    done
+done
+set_setting window_position '"center"'
+
+a11y() { /usr/bin/python3 -I "$here/a11y.py" "$@"; }
+click_widget() { # window title, role, name
+    local x y w h fx fy
+    read -r x y w h < <(a11y find "$1" "$2" "$3")
+    read -r fx fy _ _ < <(shell_eval 'petProbe.state()' | jq -r --arg t "$1" \
+        '.windows[] | select(.title == $t) | .frame | "\(.x) \(.y) \(.width) \(.height)"')
+    shell_eval "petProbe.click($((fx + x + w / 2)), $((fy + y + h / 2)), 1)" >/dev/null
+    sleep 0.8
+}
+# The place of a custom position in a work area, as launcher.js does it.
+custom_place() { # x y: the fractions; work area x y width height
+    awk -v fx="$1" -v fy="$2" -v ax="$3" -v ay="$4" -v aw="$5" -v ah="$6" 'BEGIN {
+        cx = sprintf("%.0f", fx * aw) + 0; left = int(cx - 375 + 1000000) - 1000000
+        if (left < 0) left = 0; if (left > aw - 750) left = aw - 750
+        top = sprintf("%.0f", fy * ah) + 0; if (top > ah - 64) top = ah - 64
+        printf "%d %d\n", ax + left, ay + top }'
+}
+
+begin pin
+show_on 0
+move_by 300 -200
+moved=$(place)
+shell_eval "petProbe.screenshotWindow('$title', '$OUT/launcher-pin-button.png')" >/dev/null
+a11y tree "$title" >"$OUT/a11y-launcher-pin.txt" 2>&1
+expect "the pin button shows after a move" grep -q "push button 'Open Here from Now On'" "$OUT/a11y-launcher-pin.txt"
+click_widget "$title" 'push button' 'Open Here from Now On'
+sleep 1
+cp "$config/settings.toml" "$OUT/settings-after-pin.toml"
+a11y tree "$title" >"$OUT/a11y-launcher-after-pin.txt" 2>&1
+expect "the pin writes window_position custom" grep -q '^window_position = "custom"' "$config/settings.toml"
+expect "the pin writes custom_position" grep -q '^custom_position = { x = ' "$config/settings.toml"
+expect "the pin button goes after the click" \
+    eval "! grep -q 'Open Here from Now On' '$OUT/a11y-launcher-after-pin.txt'"
+expect "the launcher stays after the click" shows
+read -r px py < <(sed -nE 's/^custom_position = \{ x = ([0-9.]+), y = ([0-9.]+) \}$/\1 \2/p' "$config/settings.toml")
+keys Escape
+sleep 0.5
+for run in 1 2 3; do
+    begin "pinned-$run"
+    show_on 0
+    record "pinned-m0-$run"
+    expect "a show with no kept query opens at the pinned place" [ "$(place)" == "$moved" ]
+    keys Escape
+    sleep 0.5
+    show_on 1
+    record "pinned-m1-$run"
+    expect "the pinned place on monitor 1 has the same fractions" \
+        [ "$(place)" == "$(custom_place "$px" "$py" 3008 0 1920 1200)" ]
+    [[ $run == 1 ]] && shot launcher-pinned-m1
+    keys Escape
+    sleep 0.5
+done
+
+
 # Each path to a show of the launcher maps it with no activation token, so
 # Mutter does not show the busy pointer.
 tray_click() {
@@ -211,3 +295,14 @@ done
 begin no-busy-pointer
 expect "no show of the launcher set the busy pointer" \
     eval "! grep -q 'STARTUP: Setting busy cursor' '$OUT/shell.log'"
+
+# The settings window still sets the busy pointer, so this step comes after
+# the check.
+begin general-page
+app_action $app settings
+sleep 2
+click_widget 'petlauncher Settings' 'list item' General
+shell_eval "petProbe.screenshotWindow('petlauncher Settings', '$OUT/settings-general-position.png')" >/dev/null
+a11y tree 'petlauncher Settings' >"$OUT/a11y-settings-general.txt" 2>&1
+expect "the General page has the row Position with Custom" grep -q "Position" "$OUT/a11y-settings-general.txt"
+close_window 'petlauncher Settings'
