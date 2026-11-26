@@ -1,0 +1,13 @@
+  1 This file is a test fixture in the format of the WordNet 3.0 database.  
+  2 Its words and definitions are invented for the tests of petlauncher.  
+00000152 00 a 01 good 0 001 ! 00000256 a 0101 | having the qualities that are desired; "a good knife"  
+00000256 00 a 01 bad 0 001 ! 00000152 a 0101 | having the qualities that are not desired  
+00000347 00 s 02 full 0 good 0 001 & 00000152 a 0000 | having the expected quantity; "a full cup"  
+00000447 00 a 01 better 0 000 | more good than a different thing  
+00000514 00 a 01 well 0 000 | in good health  
+00000561 00 a 01 ripe 0 000 | ready to eat  
+00000606 00 a 02 big 0 large 0 001 ! 00000687 a 0201 | more than usual in size  
+00000687 00 a 01 small 0 001 ! 00000606 a 0102 | less than usual in size  
+00000762 00 a 01 afraid(p) 0 000 | filled with fear  
+00000816 00 a 01 former(a) 0 000 | earlier in time  
+00000869 00 s 02 galore(ip) 0 abundant 0 000 | in large amounts  

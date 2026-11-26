@@ -1,0 +1,10 @@
+[package]
+name = "petlauncher-dict"
+description = "Reader for the WordNet 3.0 database files"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dev-dependencies]
+tempfile = "3"

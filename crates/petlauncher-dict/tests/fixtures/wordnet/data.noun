@@ -1,0 +1,21 @@
+  1 This file is a test fixture in the format of the WordNet 3.0 database.  
+  2 Its words and definitions are invented for the tests of petlauncher.  
+00000152 06 n 01 device 0 002 ~ 00000265 n 0000 ~ 00000418 n 0000 | a thing that is made for a special purpose  
+00000265 06 n 02 launcher 0 rocket_launcher 0 002 @ 00000152 n 0000 + 00000563 v 0101 | a device that fires rockets; "the soldiers carried a launcher"  
+00000418 06 n 02 catapult 0 launcher 1 001 @ 00000152 n 0000 | a machine that throws aircraft from the deck of a ship  
+00000538 06 n 01 launch 0 000 | a small boat with a motor; "we took the launch to the island"  
+00000634 06 n 03 launch_pad 0 launching_pad 0 launchpad 0 000 | a platform from which a rocket goes up  
+00000739 04 n 01 launching 0 000 | the act of sending a thing into the air  
+00000816 27 n 01 glass 0 000 | a hard material that light goes through  
+00000889 06 n 02 glasses 0 spectacles 0 000 | two lenses in a frame that help a person to see  
+00000985 06 n 02 bus 0 autobus 0 000 | a large vehicle that carries many passengers  
+00001071 08 n 01 Bos 0 000 | a group of animals that includes cattle  
+00001142 18 n 01 boss 0 000 | a person who controls the work of other persons  
+00001222 06 n 01 box 0 000 | a container with flat sides  
+00001281 23 n 01 boxful 0 000 | the quantity that a box holds  
+00001345 18 n 01 man 0 000 | an adult male person  
+00001397 06 n 02 ax 0 axe 0 000 | a tool with a heavy blade on a handle  
+00001471 25 n 01 axis 0 000 | a line around which a thing turns  
+00001537 07 n 02 good 0 goodness 0 000 | the quality of being morally right  
+00001615 04 n 01 run 0 000 | a point that a baseball player scores  
+00001684 15 n 03 New_York 0 New_York_City 0 Greater_New_York 0 000 | a large city on the east coast of the United States  

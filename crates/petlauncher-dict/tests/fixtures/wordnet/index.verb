@@ -1,0 +1,16 @@
+  1 This file is a test fixture in the format of the WordNet 3.0 database.  
+  2 Its words and definitions are invented for the tests of petlauncher.  
+better v 1 0 1 0 00001105  
+consult v 1 0 1 0 00000976  
+flee v 1 0 1 0 00000389  
+hop v 1 0 1 0 00000846  
+hope v 1 0 1 1 00000780  
+improve v 1 0 1 0 00001105  
+launch v 2 1 + 2 2 00000563 00000681  
+look v 1 0 1 1 00000905  
+look_up v 1 0 1 0 00000976  
+move v 1 1 ~ 1 1 00000152  
+operate v 1 0 1 0 00000468  
+run v 2 2 @ ^ 2 2 00000229 00000468  
+run_away v 1 0 1 0 00000389  
+start_up v 1 0 1 0 00000681  

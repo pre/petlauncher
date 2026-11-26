@@ -1,0 +1,13 @@
+  1 This file is a test fixture in the format of the WordNet 3.0 database.  
+  2 Its words and definitions are invented for the tests of petlauncher.  
+00000152 38 v 01 move 0 001 ~ 00000229 v 0000 01 + 01 00 | change position  
+00000229 38 v 01 run 0 002 @ 00000152 v 0000 ^ 00000389 v 0102 02 + 01 00 + 02 00 | move fast on foot; "the children run to school"; "she runs every morning"  
+00000389 38 v 02 flee 0 run_away 0 000 01 + 01 00 | go away fast from danger  
+00000468 41 v 02 run 1 operate 0 000 01 + 08 00 | control or manage; "she runs a small shop"  
+00000563 35 v 01 launch 0 001 + 00000265 n 0101 01 + 08 00 | send into the air with force; "they launched a rocket"  
+00000681 41 v 02 launch 1 start_up 0 000 01 + 08 00 | start a new thing; "launch a new business"  
+00000780 31 v 01 hope 0 000 01 + 08 00 | want a thing to happen  
+00000846 38 v 01 hop 0 000 01 + 02 00 | jump on one foot  
+00000905 39 v 01 look 0 000 01 + 02 00 | use the eyes to see a thing  
+00000976 32 v 02 look_up 0 consult 0 000 01 + 08 00 | find information in a book or a list; "look up a word in the dictionary"  
+00001105 30 v 02 better 0 improve 0 000 01 + 08 00 | make a thing more good  

@@ -1,0 +1,5 @@
+  1 This file is a test fixture in the format of the WordNet 3.0 database.  
+  2 Its words and definitions are invented for the tests of petlauncher.  
+better r 1 0 1 1 00000223  
+good r 1 0 1 0 00000152  
+well r 1 0 1 1 00000152  
