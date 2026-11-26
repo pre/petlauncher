@@ -16,6 +16,7 @@ use crate::dictionary_window;
 use crate::keys::{self, Intent};
 use crate::log;
 use crate::model::{self, Arrival, Effect, LauncherModel, Press};
+use crate::notices::{NoticeKind, Notices};
 use crate::rows;
 use crate::visibility::{Toggle, Visibility};
 
@@ -40,6 +41,7 @@ pub struct LauncherWindow {
     window: adw::ApplicationWindow,
     content: gtk::Box,
     entry: gtk::Entry,
+    notice_box: gtk::Box,
     separator: gtk::Separator,
     scroller: gtk::ScrolledWindow,
     list: gtk::ListBox,
@@ -50,6 +52,9 @@ pub struct LauncherWindow {
     focused: Cell<bool>,
     /// The show had a kept query: select all its text at the first focus.
     select_at_focus: Cell<bool>,
+    notices: RefCell<Notices>,
+    /// Runs at the start of each show, before the window is visible.
+    before_show: RefCell<Option<Box<dyn Fn()>>>,
 }
 
 impl LauncherWindow {
@@ -84,11 +89,17 @@ impl LauncherWindow {
             .visible(false)
             .css_classes(["results-scroller"])
             .build();
+        let notice_box = gtk::Box::builder()
+            .orientation(gtk::Orientation::Vertical)
+            .visible(false)
+            .css_classes(["notices"])
+            .build();
         let separator = gtk::Separator::builder().visible(false).build();
         let content = gtk::Box::builder()
             .orientation(gtk::Orientation::Vertical)
             .build();
         content.append(&query_bar);
+        content.append(&notice_box);
         content.append(&separator);
         content.append(&scroller);
         let window = adw::ApplicationWindow::builder()
@@ -103,6 +114,7 @@ impl LauncherWindow {
             window,
             content,
             entry,
+            notice_box,
             separator,
             scroller,
             list,
@@ -111,6 +123,8 @@ impl LauncherWindow {
             visibility: RefCell::new(Visibility::default()),
             focused: Cell::new(false),
             select_at_focus: Cell::new(false),
+            notices: RefCell::new(Notices::default()),
+            before_show: RefCell::new(None),
         });
         this.set_width(this.backend.settings().window_width);
         this.connect_signals();
@@ -196,6 +210,30 @@ impl LauncherWindow {
         self.set_width(settings.window_width);
     }
 
+    /// Runs `hook` at the start of each show, before the window is visible.
+    pub fn set_before_show(&self, hook: impl Fn() + 'static) {
+        self.before_show.replace(Some(Box::new(hook)));
+    }
+
+    /// R4: the notice that the global key is not set, or `None`.
+    pub fn set_global_key_notice(&self, text: Option<String>) {
+        self.notices.borrow_mut().set_global_key(text);
+        self.show_notices();
+    }
+
+    /// R18: the error of a settings file, or `None`.
+    pub fn set_config_notice(&self, text: Option<String>) {
+        self.notices.borrow_mut().set_config(text);
+        self.show_notices();
+    }
+
+    /// Searches the query again, for example after the file index or the
+    /// applications changed. The selected row stays when it is still there.
+    pub fn refresh(&self) {
+        let text = self.model.borrow().text().to_owned();
+        self.backend.search(&text);
+    }
+
     /// The action `show`: shows the launcher. When it shows already, the
     /// query and the rows do not change, and the window only comes to the
     /// front.
@@ -204,6 +242,11 @@ impl LauncherWindow {
             self.window.present();
             return;
         }
+        if let Some(hook) = self.before_show.borrow().as_ref() {
+            hook();
+        }
+        self.notices.borrow_mut().clear_action();
+        self.show_notices();
         self.set_width(self.backend.settings().window_width);
         let kept = self.backend.window_opened();
         match &kept {
@@ -232,8 +275,12 @@ impl LauncherWindow {
         if !self.visibility.borrow_mut().hide() {
             return;
         }
-        let text = self.model.borrow().text().to_owned();
-        self.backend.window_closed(&text, reason);
+        // `executed` recorded the close after a key. A second record would
+        // decide the kept query again (R9 step 5).
+        if !matches!(reason, CloseReason::Activated { .. }) {
+            let text = self.model.borrow().text().to_owned();
+            self.backend.window_closed(&text, reason);
+        }
         log::debug(format_args!("hide, {reason:?}"));
         self.window.set_visible(false);
         if !self.backend.settings().run_in_background {
@@ -287,20 +334,47 @@ impl LauncherWindow {
     fn text_changed(&self) {
         let text = self.entry.text();
         log::debug(format_args!("search {text:?}"));
+        if self.notices.borrow_mut().clear_action() {
+            self.show_notices();
+        }
         self.model.borrow_mut().set_text(&text);
         self.backend.search(&text);
     }
 
     fn results_arrived(&self, results: Results) {
+        let same_query = self.model.borrow().results().query == results.query;
         let arrival = self.model.borrow_mut().results_arrived(results);
-        match arrival {
-            Arrival::Old => {}
-            Arrival::Show => self.show_rows(),
-            Arrival::ShowAndActivate(key) => {
-                self.show_rows();
-                self.activate(key);
-            }
+        if arrival == Arrival::Old {
+            return;
         }
+        let scroll = self.scroller.vadjustment().value();
+        self.show_rows();
+        if same_query {
+            self.scroller.vadjustment().set_value(scroll);
+        }
+        log::debug(self.rows_line());
+        if let Arrival::ShowAndActivate(key) = arrival {
+            self.activate(key);
+        }
+    }
+
+    /// The rows that show, for the debug log of the tests.
+    fn rows_line(&self) -> String {
+        let model = self.model.borrow();
+        let results = model.results();
+        let titles: Vec<&str> = results
+            .rows
+            .iter()
+            .take(5)
+            .map(|row| row.title.as_str())
+            .collect();
+        format!(
+            "rows for {:?}: {}, selected {:?}: {}",
+            results.query,
+            results.rows.len(),
+            model.selected(),
+            titles.join(" | ")
+        )
     }
 
     fn focus_changed(&self, focused: bool) {
@@ -371,15 +445,62 @@ impl LauncherWindow {
             Effect::Dictionary(word) => dictionary_window::open(word),
             Effect::Desktop => {
                 if let Err(error) = self.backend.execute(&outcome.action) {
-                    log::info(format_args!("{error}"));
+                    // The window stays open and shows the error.
+                    log::info(format_args!("action error: {error}"));
+                    self.notices
+                        .borrow_mut()
+                        .set_action(Some(error.to_string()));
+                    self.show_notices();
+                    return;
                 }
+                log::debug(format_args!("executed {:?}", outcome.action));
             }
         }
+        let query = self.model.borrow().results().query.clone();
+        self.backend.executed(&query, outcome);
         if outcome.close {
             self.hide(CloseReason::Activated {
                 keep_query: outcome.keep_query,
             });
         }
+    }
+
+    fn show_notices(&self) {
+        while let Some(child) = self.notice_box.first_child() {
+            self.notice_box.remove(&child);
+        }
+        let notices = self.notices.borrow();
+        let lines = notices.lines();
+        for (kind, text) in &lines {
+            let (icon, class) = match kind {
+                NoticeKind::Error => ("dialog-error-symbolic", "error"),
+                NoticeKind::Warning => ("dialog-warning-symbolic", "warning"),
+            };
+            let line = gtk::Box::builder()
+                .spacing(10)
+                .css_classes(["notice"])
+                .build();
+            line.append(
+                &gtk::Image::builder()
+                    .icon_name(icon)
+                    .valign(gtk::Align::Start)
+                    .css_classes([class])
+                    .build(),
+            );
+            line.append(
+                &gtk::Label::builder()
+                    .label(*text)
+                    .wrap(true)
+                    .wrap_mode(gtk::pango::WrapMode::WordChar)
+                    .xalign(0.0)
+                    .hexpand(true)
+                    .max_width_chars(1)
+                    .selectable(false)
+                    .build(),
+            );
+            self.notice_box.append(&line);
+        }
+        self.notice_box.set_visible(!lines.is_empty());
     }
 
     fn set_query(&self, text: &str) {

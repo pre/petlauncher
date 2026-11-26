@@ -76,7 +76,16 @@ impl LauncherModel {
         if results.query != self.text {
             return Arrival::Old;
         }
-        self.selection = Selection::new(results.rows.len(), results.selected);
+        // New rows of the same query, for example after a scan of the file
+        // index: the selected row stays selected when it is still there.
+        let current = (results.query == self.results.query)
+            .then(|| {
+                self.selected()
+                    .and_then(|index| self.results.rows.get(index))
+            })
+            .flatten()
+            .and_then(|row| results.rows.iter().position(|new| new == row));
+        self.selection = Selection::with_current(results.rows.len(), results.selected, current);
         self.results = results;
         match self.pending.take() {
             Some(key) => Arrival::ShowAndActivate(key),
@@ -215,12 +224,56 @@ mod tests {
     }
 
     #[test]
-    fn new_results_take_the_selection_of_the_results() {
+    fn results_of_a_new_text_take_the_selection_of_the_results() {
+        let mut model = model_with(directory_results("~/d/"));
+        model.down();
+        model.set_text("~/d");
+
+        model.results_arrived(directory_results("~/d"));
+
+        assert_eq!(model.selected(), None);
+    }
+
+    #[test]
+    fn new_results_of_the_same_text_keep_the_selected_row() {
         let mut model = model_with(directory_results("~/d/"));
         model.down();
         model.down();
+        let mut newer = directory_results("~/d/");
+        newer.rows.insert(
+            0,
+            Row::new(
+                RowKind::File,
+                "new.txt",
+                Action::OpenFile("/h/d/new.txt".into()),
+            ),
+        );
+
+        model.results_arrived(newer);
+
+        assert_eq!(model.selected(), Some(2));
+        assert_eq!(model.results().rows[2].title, "a.txt");
+    }
+
+    #[test]
+    fn new_results_of_the_same_text_keep_no_selected_row_and_up_still_returns_to_it() {
+        let mut model = model_with(directory_results("~/d/"));
+        model.down();
 
         model.results_arrived(directory_results("~/d/"));
+        model.up();
+
+        assert_eq!(model.selected(), None);
+    }
+
+    #[test]
+    fn a_selected_row_that_is_gone_gives_the_selection_of_the_new_results() {
+        let mut model = model_with(directory_results("~/d/"));
+        model.down();
+        let mut newer = directory_results("~/d/");
+        newer.rows.remove(0);
+
+        model.results_arrived(newer);
 
         assert_eq!(model.selected(), None);
     }

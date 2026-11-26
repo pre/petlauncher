@@ -38,3 +38,13 @@ list.results > row {
 .result-subtitle {
   font-size: 0.9em;
 }
+
+/* The notices below the query line: an error of the last action, the
+   global key that is not set, and a settings file with an error. */
+.notices {
+  padding: 0 18px 12px 26px;
+}
+
+.notice + .notice {
+  margin-top: 6px;
+}

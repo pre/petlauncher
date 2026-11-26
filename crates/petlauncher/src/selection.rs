@@ -23,6 +23,17 @@ impl Selection {
         }
     }
 
+    /// The same as `new`, but `current` is the selected row when it is in
+    /// the list. The state "no row selected" stays possible when `start` is
+    /// `None`. For new rows of the same query.
+    pub fn with_current(len: usize, start: Option<usize>, current: Option<usize>) -> Self {
+        let mut selection = Self::new(len, start);
+        if let Some(index) = current.filter(|&index| index < len) {
+            selection.selected = Some(index);
+        }
+        selection
+    }
+
     pub fn selected(&self) -> Option<usize> {
         self.selected
     }
@@ -130,6 +141,22 @@ mod tests {
         selection.down();
 
         assert_eq!(selection.selected(), None);
+    }
+
+    #[test]
+    fn with_current_keeps_the_current_row_and_the_state_with_no_selected_row() {
+        let mut selection = Selection::with_current(3, None, Some(2));
+        let kept = selection.selected();
+        selection.up();
+        selection.up();
+        selection.up();
+
+        assert_eq!(kept, Some(2));
+        assert_eq!(selection.selected(), None);
+        assert_eq!(
+            Selection::with_current(3, Some(0), Some(7)).selected(),
+            Some(0)
+        );
     }
 
     #[test]

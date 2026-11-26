@@ -16,9 +16,13 @@ path = "src/main.rs"
 adw = { package = "libadwaita", version = "0.9", features = ["v1_5"] }
 async-channel = "2"
 gtk = { package = "gtk4", version = "0.11", features = ["gnome_46"] }
+# The program does not download: the Launcher does, on its own thread.
+petlauncher-calc = { path = "../petlauncher-calc", default-features = false }
 petlauncher-config = { path = "../petlauncher-config" }
 petlauncher-core = { path = "../petlauncher-core" }
 petlauncher-dict = { path = "../petlauncher-dict" }
+petlauncher-gnome = { path = "../petlauncher-gnome" }
+petlauncher-providers = { path = "../petlauncher-providers" }
 
 [dev-dependencies]
 tempfile = "3"
