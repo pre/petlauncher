@@ -1,0 +1,10 @@
+[package]
+name = "petlauncher-config"
+description = "Settings and shortcuts of petlauncher as TOML text"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+serde.workspace = true
