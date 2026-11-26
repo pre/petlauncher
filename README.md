@@ -14,6 +14,7 @@ An application launcher, calculator and snippet manager for GNOME on Wayland. Ru
 | `crates/petlauncher-dict` | WordNet dictionary | [docs/dictionary.md](docs/dictionary.md) |
 | `crates/petlauncher-apps` | Applications and settings pages | [docs/applications.md](docs/applications.md) |
 | `crates/petlauncher-providers` | Providers for each search crate, and the `Launcher` that the program holds | [docs/launcher.md](docs/launcher.md) |
+| `crates/petlauncher-gnome` | GNOME part: file manager, system commands, global key, execution of actions | [docs/gnome-desktop.md](docs/gnome-desktop.md) |
 | `gnome/extension` | GNOME Shell extension: window position and top bar icon | [docs/gnome-extension.md](docs/gnome-extension.md) |
 
 The decisions that are hard to reverse are in [docs/adr](docs/adr/README.md).
