@@ -1,6 +1,6 @@
 # petlauncher
 
-An application launcher, calculator and snippet manager for GNOME on Wayland. Rust with GTK 4 and libadwaita. Status: in development. The launcher window works with the path mode, the shortcuts and the system commands. The other searches, the desktop actions, the settings window and the dictionary window are not joined yet.
+An application launcher, calculator and snippet manager for GNOME on Wayland. Rust with GTK 4 and libadwaita. Status: in development. The launcher window works with the path mode, the shortcuts and the system commands. The other searches, the desktop actions and the settings window are not joined yet. The dictionary window works, but the launcher gives no dictionary rows yet.
 
 ## Parts
 

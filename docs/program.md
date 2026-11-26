@@ -2,7 +2,7 @@
 
 The crate `crates/petlauncher` is the program `petlauncher`: the command line, the application on the session bus and the launcher window. It uses GTK 4 and libadwaita. This file describes the command line, the window, the threads, the seam for the next parts, the build and the test.
 
-The settings window and the dictionary window are not written yet. The program has a place for each of them (see "Seam for the next parts").
+The settings window is not written yet. The program has a place for it (see "Seam for the next parts"). The dictionary window: [dictionary-window.md](dictionary-window.md).
 
 ## Build
 
@@ -68,7 +68,7 @@ When the owner presses Enter before the results of the text came, the key waits 
 | `Nothing` | Nothing. |
 | `SetQuery` | Puts the text in the query line with the cursor at its end, and searches it. The window stays. |
 | `Copy` | Puts the text on the clipboard. |
-| `OpenDictionary` | Opens the dictionary window. Now it writes a log line only. |
+| `OpenDictionary` | Opens the dictionary window with the word. |
 | All other actions | `desktop::execute`, the seam for `petlauncher-gnome`. Now it writes a log line only. |
 
 The window closes when the outcome says so.
@@ -127,7 +127,7 @@ The windows call the rest of the program only through `Backend` in `src/backend.
 | `src/desktop.rs` | `execute` writes the action to the log. | The `Desktop` of `petlauncher-gnome` executes the action. |
 | `src/rows.rs` | `Icon::ForFile` gets the icon of the content type from the file name only. | No change. |
 | `src/settings_window.rs` | A window with a short text. | The settings window. |
-| `src/dictionary_window.rs` | A log line. | The dictionary window (R19). |
+| `src/dictionary_window/` | The dictionary window (R19). `WordNet` opens the WordNet data itself. | The `Launcher` implements `DictionarySource`, see [dictionary-window.md](dictionary-window.md). |
 | none | The autostart file is not written. | Write and remove `~/.config/autostart/pet.repo.Petlauncher.desktop` with "Run in background" (R3). |
 
 ## Test
