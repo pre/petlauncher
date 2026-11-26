@@ -26,6 +26,7 @@ struct Shared {
     snapshot: RwLock<Arc<Index>>,
     last_error: Mutex<Option<String>>,
     control: Mutex<Control>,
+    on_update: Option<Box<dyn Fn() + Send + Sync>>,
 }
 
 struct Control {
@@ -43,6 +44,25 @@ impl FileIndex {
     /// Loads the stored index from `cache_dir` when it is valid for `scope`.
     /// If not, the index is empty until the first scan. Does not scan.
     pub fn open(scope: Scope, cache_dir: &Path) -> Result<Self, ScopeError> {
+        Self::open_inner(scope, cache_dir, None)
+    }
+
+    /// Same as [`FileIndex::open`], and calls `on_update` on the scan thread
+    /// each time a scan replaces the snapshot. A stopped scan does not call
+    /// it. The program uses it to search again.
+    pub fn open_with_listener(
+        scope: Scope,
+        cache_dir: &Path,
+        on_update: impl Fn() + Send + Sync + 'static,
+    ) -> Result<Self, ScopeError> {
+        Self::open_inner(scope, cache_dir, Some(Box::new(on_update)))
+    }
+
+    fn open_inner(
+        scope: Scope,
+        cache_dir: &Path,
+        on_update: Option<Box<dyn Fn() + Send + Sync>>,
+    ) -> Result<Self, ScopeError> {
         let resolved = Arc::new(scope.resolve()?);
         let file = cache_dir.join(store::FILE_NAME);
         let index = store::load(&file, &scope).unwrap_or_default();
@@ -56,6 +76,7 @@ impl FileIndex {
                     resolved,
                     running: None,
                 }),
+                on_update,
             }),
         })
     }
@@ -158,6 +179,9 @@ impl Shared {
         };
         let index = Arc::new(index);
         *self.snapshot.write().unwrap() = Arc::clone(&index);
+        if let Some(on_update) = &self.on_update {
+            on_update();
+        }
         let error = store::save(&self.file, scope, &index)
             .err()
             .map(|error| format!("cannot write {}: {error}", self.file.display()));

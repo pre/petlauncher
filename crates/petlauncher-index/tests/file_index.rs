@@ -191,3 +191,43 @@ fn reports_a_write_error_and_still_uses_the_new_snapshot() {
     assert!(index.last_error().is_some_and(|e| e.contains("blocker")));
     assert_eq!(index.search_files("plan", 5).len(), 1);
 }
+
+#[test]
+fn open_with_listener_calls_the_listener_when_a_scan_replaces_the_snapshot() {
+    let tree = Tree::new();
+    tree.file("notes/plan.md");
+    let (report, reports) = std::sync::mpsc::channel();
+    let index = FileIndex::open_with_listener(tree.scope(&[]), &cache_dir(&tree), move || {
+        let _ = report.send(());
+    })
+    .unwrap();
+
+    index.rescan();
+    index.wait();
+
+    assert_eq!(reports.try_recv(), Ok(()));
+    assert!(reports.try_recv().is_err());
+    assert_eq!(index.search_files("plan", 5).len(), 1);
+}
+
+#[test]
+fn the_listener_sees_the_new_snapshot() {
+    let tree = Tree::new();
+    tree.file("notes/plan.md");
+    let (report, reports) = std::sync::mpsc::channel();
+    let index = Arc::new_cyclic(|weak: &std::sync::Weak<FileIndex>| {
+        let weak = weak.clone();
+        FileIndex::open_with_listener(tree.scope(&[]), &cache_dir(&tree), move || {
+            let hits = weak
+                .upgrade()
+                .map_or(0, |index| index.search("plan", 5).len());
+            let _ = report.send(hits);
+        })
+        .unwrap()
+    });
+
+    index.rescan();
+    index.wait();
+
+    assert_eq!(reports.try_recv(), Ok(1));
+}

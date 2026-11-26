@@ -156,6 +156,7 @@ Rules:
 - `is_older_than(age)` is true when no scan made the index, or when the scan that made it started `age` or more ago.
 - `last_error()` gives the error of the last write of the stored file. The index in memory is correct also when the write fails.
 - `wait()` waits until the running scan ends. It is for the tests and for the end of the program.
+- `FileIndex::open_with_listener(scope, cache_dir, on_update)` is the same as `open`, and calls `on_update` on the scan thread each time a scan replaces the snapshot, before the write of the stored file. A stopped scan does not call it. The program uses it to search the query again.
 
 ## Measurements
 
