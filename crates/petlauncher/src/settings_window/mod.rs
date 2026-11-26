@@ -15,6 +15,7 @@ mod form_page;
 mod general_page;
 mod hotkey;
 mod keep_time;
+mod key_dialog;
 mod key_page;
 mod search_page;
 mod shortcuts_page;
@@ -294,7 +295,6 @@ impl SettingsWindow {
     /// now (R4: the two places show the same key). With `page`, the window
     /// shows that page, also when a subpage was open.
     pub fn present(&self, page: Option<Page>) {
-        self.key.load(&self.context);
         self.reload();
         if let Some(page) = page {
             self.context.navigation.pop_to_page(&self.root);

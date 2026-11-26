@@ -50,13 +50,6 @@ impl MessageRow {
         self.row.set_title(text);
         self.row.set_visible(true);
     }
-
-    pub fn note(&self, icon: &str, text: &str) {
-        self.set(None);
-        self.icon.set_icon_name(Some(icon));
-        self.row.set_title(text);
-        self.row.set_visible(true);
-    }
 }
 
 /// The group at the top of a page that shows the error of a file (R18): the

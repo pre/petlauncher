@@ -1,7 +1,7 @@
-//! R4: the state of the global key in the settings window, with no
-//! widgets. The window shows the key that GNOME has, a candidate key that
-//! the owner presses or types, the error of the text, and each other GNOME
-//! key binding with the candidate key (ADR 0008).
+//! R4: the state of the dialog that sets the global key, with no widgets.
+//! The dialog shows the key that the owner pressed (the candidate), its
+//! error, and each other GNOME key binding with the candidate key
+//! (ADR 0008). The empty candidate removes the key of petlauncher.
 
 use gtk::gdk;
 use petlauncher_gnome::{validate_accelerator, Conflict, CustomShortcuts, TOGGLE_COMMAND};
@@ -10,7 +10,7 @@ use petlauncher_gnome::{validate_accelerator, Conflict, CustomShortcuts, TOGGLE_
 pub struct HotkeyState {
     /// The key of the petlauncher shortcut in GNOME now. `None`: no key.
     pub current: Option<String>,
-    /// The key that the owner wants.
+    /// The key that the owner wants. Empty: no global key.
     pub candidate: String,
     /// The error of the candidate text, for the owner.
     pub error: Option<String>,
@@ -34,7 +34,7 @@ impl HotkeyState {
         state
     }
 
-    /// A new candidate: pressed or typed.
+    /// A new candidate: a pressed key, or empty after BackSpace.
     pub fn set_candidate(&mut self, shortcuts: &CustomShortcuts, text: &str) {
         self.candidate = text.trim().to_owned();
         self.check(shortcuts);
@@ -59,17 +59,15 @@ impl HotkeyState {
     }
 
     /// "Set" is active for a correct key that is not the key of GNOME now
-    /// and that no other key binding has.
+    /// and that no other key binding has, and for the empty key when
+    /// petlauncher has a key.
     pub fn can_set(&self) -> bool {
-        !self.candidate.is_empty()
-            && self.error.is_none()
+        if self.candidate.is_empty() {
+            return self.current.is_some();
+        }
+        self.error.is_none()
             && self.conflicts.is_empty()
             && self.current.as_deref() != Some(self.candidate.as_str())
-    }
-
-    /// "Remove the key" is active when petlauncher has a key.
-    pub fn can_clear(&self) -> bool {
-        self.current.is_some()
     }
 
     /// The text below the key, for the owner. `label` gives the key as
@@ -79,13 +77,16 @@ impl HotkeyState {
             return error.clone();
         }
         if self.candidate.is_empty() {
-            return "Press a key or type it, for example <Super>space.".into();
+            return match self.current {
+                Some(_) => "Select Set to remove the global key of petlauncher.".into(),
+                None => "Press a key combination.".into(),
+            };
         }
         let key = label(&self.candidate);
         if !self.conflicts.is_empty() {
             return format!(
-                "{key} is the key of the key bindings below. Remove it from each of them, \
-                 then select Set."
+                "These key bindings of GNOME have {key}. Remove the key from each of them, \
+                 then select Set. The bindings stay."
             );
         }
         match &self.current {
@@ -114,11 +115,19 @@ impl HotkeyState {
         Ok(())
     }
 
-    /// Writes the candidate key, only when no conflict is left. Gives true
-    /// when GNOME has the key now.
+    /// Writes the candidate key, only when no conflict is left, or removes
+    /// the key of petlauncher for the empty candidate. The shortcut then
+    /// stays with no key. Gives true when GNOME has the change.
     pub fn set(&mut self, shortcuts: &CustomShortcuts) -> Result<bool, String> {
         if !self.can_set() {
             return Ok(false);
+        }
+        if self.candidate.is_empty() {
+            shortcuts
+                .set_global_key("", TOGGLE_COMMAND)
+                .map_err(|error| error.to_string())?;
+            self.current = None;
+            return Ok(true);
         }
         let conflicts = shortcuts
             .set_global_key_if_free(&self.candidate, TOGGLE_COMMAND)
@@ -130,26 +139,17 @@ impl HotkeyState {
         self.current = Some(self.candidate.clone());
         Ok(true)
     }
-
-    /// Removes the key of petlauncher. The shortcut stays with no key.
-    pub fn clear(&mut self, shortcuts: &CustomShortcuts) -> Result<(), String> {
-        shortcuts
-            .set_global_key("", TOGGLE_COMMAND)
-            .map_err(|error| error.to_string())?;
-        self.current = None;
-        self.candidate.clear();
-        self.check(shortcuts);
-        Ok(())
-    }
 }
 
-/// What a key press does while the window waits for a new key.
+/// What a key press does in the dialog of the global key.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Capture {
     /// A modifier key alone: wait for the next key.
     Wait,
-    /// Escape with no modifier: stop waiting.
+    /// Escape with no modifier: close the dialog.
     Cancel,
+    /// BackSpace with no modifier: no global key.
+    Clear,
     /// The key as an accelerator text, for example `<Super>space`.
     Key(String),
 }
@@ -162,8 +162,12 @@ pub fn capture(keyval: gdk::Key, state: gdk::ModifierType) -> Capture {
         return Capture::Wait;
     }
     let modifiers = state & (M::CONTROL_MASK | M::ALT_MASK | M::SHIFT_MASK | M::SUPER_MASK);
-    if keyval == gdk::Key::Escape && modifiers.is_empty() {
-        return Capture::Cancel;
+    if modifiers.is_empty() {
+        match keyval {
+            gdk::Key::Escape => return Capture::Cancel,
+            gdk::Key::BackSpace => return Capture::Clear,
+            _ => {}
+        }
     }
     let mut text = String::new();
     for (mask, name) in [
@@ -223,11 +227,10 @@ mod tests {
         assert_eq!(state.candidate, "<Super>space");
         assert_eq!(state.conflicts.len(), 2);
         assert!(!state.can_set());
-        assert!(!state.can_clear());
         assert!(
             state
                 .status(str::to_owned)
-                .contains("Remove it from each of them"),
+                .contains("Remove the key from each of them"),
             "{}",
             state.status(str::to_owned)
         );
@@ -286,7 +289,7 @@ mod tests {
     }
 
     #[test]
-    fn clear_removes_the_key_of_petlauncher_and_keeps_the_other_bindings() {
+    fn the_empty_key_and_set_remove_the_key_of_petlauncher_and_keep_the_other_bindings() {
         let fixture = SettingsBackendFixture::with_conflicts();
         let shortcuts = fixture.shortcuts();
         shortcuts
@@ -294,12 +297,37 @@ mod tests {
             .unwrap();
         let mut state = HotkeyState::load(&shortcuts, "");
 
-        state.clear(&shortcuts).unwrap();
+        state.set_candidate(&shortcuts, "");
+        let can_set = state.can_set();
+        let status = state.status(str::to_owned);
+        let written = state.set(&shortcuts).unwrap();
 
+        assert!(can_set);
+        assert!(status.contains("remove the global key"), "{status}");
+        assert!(written);
         assert_eq!(shortcuts.global_key(), None);
         assert_eq!(state.current, None);
         assert_eq!(fixture.binding(NOTES), "<Super>space");
-        assert!(state.status(str::to_owned).starts_with("Press a key"));
+        assert!(!state.can_set());
+    }
+
+    #[test]
+    fn the_empty_key_with_no_key_of_petlauncher_does_not_enable_set() {
+        let fixture = SettingsBackendFixture::with_conflicts();
+        let shortcuts = fixture.shortcuts();
+        let mut state = HotkeyState::load(&shortcuts, "<Super>space");
+
+        state.set_candidate(&shortcuts, "");
+
+        assert!(!state.can_set());
+        assert!(state.conflicts.is_empty());
+        assert!(
+            state
+                .status(str::to_owned)
+                .starts_with("Press a key combination"),
+            "{}",
+            state.status(str::to_owned)
+        );
     }
 
     #[test]
@@ -341,6 +369,15 @@ mod tests {
         assert_eq!(
             capture(gdk::Key::F12, M::empty()),
             Capture::Key("F12".into())
+        );
+    }
+
+    #[test]
+    fn capture_gives_the_empty_key_for_backspace_with_no_modifier() {
+        assert_eq!(capture(gdk::Key::BackSpace, M::empty()), Capture::Clear);
+        assert_eq!(
+            capture(gdk::Key::BackSpace, M::CONTROL_MASK),
+            Capture::Key("<Control>BackSpace".into())
         );
     }
 
