@@ -15,6 +15,7 @@ pub mod model;
 pub mod paths;
 pub mod store;
 pub mod validate;
+pub mod watch;
 mod write;
 
 pub use edit::{SettingsEditor, ShortcutsEditor};
@@ -26,3 +27,4 @@ pub use model::{
 pub use paths::{config_dir, ulauncher_shortcuts_file, ConfigFile};
 pub use store::{ConfigStore, Reload};
 pub use validate::{validate, Problem, ProblemKind, Severity};
+pub use watch::ConfigWatcher;
