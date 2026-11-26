@@ -20,16 +20,17 @@ An application launcher, calculator and snippet manager for GNOME on Wayland. Ru
 
 The decisions that are hard to reverse are in [docs/adr](docs/adr/README.md).
 
-## Build
+## Build, test and install
 
-Install the packages `libgtk-4-dev` and `libadwaita-1-dev`, then run `cargo build -p petlauncher --release`.
+Install the packages `libgtk-4-dev` and `libadwaita-1-dev` and the command runner [just](https://github.com/casey/just). Then:
 
-## Test
-
-```
-cargo test --workspace
-gjs -m gnome/extension/test/test-launcher.js
-```
+| Command | Function |
+|---|---|
+| `just build` | Builds the release program with cargo. |
+| `just test` | Runs the Rust tests and the unit test of the extension. |
+| `just lint` | Checks the format and the lints. |
+| `just install` | Builds and installs for the current user, with no root. See [docs/install.md](docs/install.md). |
+| `just uninstall` | Removes the installed files. |
 
 ## License
 
