@@ -8,7 +8,6 @@ real input. Run it with the system Python, which has the Atspi typelib:
     /usr/bin/python3 -I a11y.py find TITLE ROLE NAME [N]
     /usr/bin/python3 -I a11y.py text TITLE ROLE NAME [N]
     /usr/bin/python3 -I a11y.py states TITLE ROLE NAME [N]
-    /usr/bin/python3 -I a11y.py tab TITLE NAME
 
 TITLE is the title of the window. ROLE is the AT-SPI role name, for example
 "push button" or "toggle button". NAME is the accessible name; a NAME that
@@ -18,10 +17,6 @@ Only widgets that show count.
 find prints "x y width height" of the widget, relative to the window. The
 caller adds the place of the window. The exit status is 1 when nothing
 matches.
-
-tab prints the box of a page tab of the view switcher in the header bar.
-GTK 4.14 gives the tabs an x that is not centered, so tab centers the row of
-tabs in the window, as the screenshots show it.
 """
 
 import re
@@ -113,27 +108,8 @@ def found(title, role, name, index):
     sys.exit(1)
 
 
-def tab(title, name):
-    for window in windows(title):
-        tabs = [node for node, _ in walk(window) if node.get_role_name() == "page tab"]
-        boxes = {node.get_name(): extents(node) for node in tabs}
-        if name not in boxes:
-            break
-        left = min(box[0] for box in boxes.values())
-        right = max(box[0] + box[2] for box in boxes.values())
-        width = extents(window)[2]
-        shift = (width - (right - left)) // 2 - left
-        x, y, w, h = boxes[name]
-        return x + shift, y, w, h
-    sys.stderr.write(f"no page tab {name!r} in {title!r}\n")
-    sys.exit(1)
-
-
 def main(argv):
     command, title = argv[1], argv[2]
-    if command == "tab":
-        print("{} {} {} {}".format(*tab(title, argv[3])))
-        return
     if command == "tree":
         for window in windows(title):
             for node, depth in walk(window):

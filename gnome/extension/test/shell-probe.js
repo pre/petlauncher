@@ -160,6 +160,13 @@ function click(x, y, button) {
     pointer.notify_button(GLib.get_monotonic_time(), button, Clutter.ButtonState.RELEASED);
 }
 
+// Presses or releases a pointer button at the place of the pointer, for a
+// drag.
+function button(number, pressed) {
+    pointer.notify_button(GLib.get_monotonic_time(), number,
+        pressed ? Clutter.ButtonState.PRESSED : Clutter.ButtonState.RELEASED);
+}
+
 // Makes the virtual keyboard. Mutter adds the device a short time after this
 // call, and drops the events before that. Wait some time before keys().
 function prepareKeyboard() {
@@ -312,6 +319,10 @@ export function init() {
         now,
         pointer: (x, y) => movePointer(x, y),
         click,
+        button,
+        // The number of modal dialogs of the shell, for example the question
+        // of GNOME Shell before an application pauses its shortcuts.
+        modalCount: () => Main.modalCount,
         prepareKeyboard,
         keys,
         type,

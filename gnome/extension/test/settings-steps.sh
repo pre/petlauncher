@@ -149,15 +149,41 @@ click() { # role name [n] [window title]
     click_box $box "${4:-$title}"
 }
 
-page() { # name of a page tab
-    local box
-    box=$(a11y tab "$title" "$1" 2>/dev/null) || {
-        echo "$step: no page tab '$1'" >>"$OUT/commands.txt"
-        return 0
-    }
-    # shellcheck disable=SC2086
-    click_box $box
+page() { # name of a page in the list at the left edge
+    click 'list item' "$1"
     sleep 0.4
+}
+
+# A drag with the primary button: from the middle of a box of the window,
+# then to points of the window, then the release.
+drag_start() { # x y width height
+    local fx fy
+    read -r fx fy _ _ < <(frame_of "$title")
+    shell_eval "petProbe.pointer($((fx + $1 + $3 / 2)), $((fy + $2 + $4 / 2)))" >/dev/null
+    sleep 0.2
+    shell_eval "petProbe.button(1, true)" >/dev/null
+    sleep 0.2
+}
+drag_to() { # x y
+    local fx fy
+    read -r fx fy _ _ < <(frame_of "$title")
+    shell_eval "petProbe.pointer($((fx + $1)), $((fy + $2)))" >/dev/null
+    sleep 0.3
+}
+drag_end() {
+    shell_eval "petProbe.button(1, false)" >/dev/null
+    sleep 1
+}
+
+# The dialog of the global key asks GNOME Shell to pause its shortcuts.
+# GNOME Shell asks first, with Allow selected: Return selects it.
+allow_inhibit() {
+    sleep 1
+    if [[ $(shell_eval 'petProbe.modalCount()') != 0 ]]; then
+        screenshot shell-inhibit-question
+        keys Return
+        sleep 1
+    fi
 }
 
 # The text of a widget through AT-SPI.
@@ -210,7 +236,7 @@ open_settings() {
 # each row with no scroll.
 size_settings() { # height
     shell_eval "global.get_window_actors().map(a => a.meta_window)
-        .find(w => w.get_title() === '$title').move_resize_frame(false, 600, 50, 720, $1)" >/dev/null
+        .find(w => w.get_title() === '$title').move_resize_frame(false, 600, 50, 900, $1)" >/dev/null
     sleep 0.8
 }
 
@@ -256,11 +282,35 @@ sleep 1
 expect "the start writes no key: two bindings have it" app-program.log \
     logged "the global key <Super>space is not set"
 
-# The window from the launcher: Ctrl+comma.
-begin open-with-ctrl-comma
+# The button of the notice of R4 opens the window on the Global Key page.
+begin open-from-the-notice
 open_launcher
 shot launcher-notice petlauncher
 tree launcher-notice petlauncher
+expect "the notice names the key and the bindings" a11y-launcher-notice.txt \
+    grep -q "have Super+Space:" "$OUT/a11y-launcher-notice.txt"
+click 'push button' 'Open Global Key Settings' 0 petlauncher
+sleep 1.5
+tree settings-from-notice
+shot settings-from-notice
+expect "the button of the notice opens the settings window" app-program.log window_shows "$title"
+expect "the launcher hides" app-program.log window_hidden petlauncher
+expect "the window shows the Global Key page" a11y-settings-from-notice.txt \
+    grep -q "list item 'Global Key' .*selected" "$OUT/a11y-settings-from-notice.txt"
+close_window "$title"
+
+# The gear at the right edge of the query line.
+begin open-with-the-gear
+open_launcher
+click 'push button' Settings 0 petlauncher
+sleep 1.5
+expect "the gear opens the settings window" app-program.log window_shows "$title"
+expect "the launcher hides" app-program.log window_hidden petlauncher
+close_window "$title"
+
+# The window from the launcher: Ctrl+comma.
+begin open-with-ctrl-comma
+open_launcher
 t=$(now)
 keys Control_L+comma
 sleep 1.5
@@ -313,17 +363,30 @@ hotkey_in_effect() { # key: the file has this key, or no line and the default
     fi
 }
 
-# R4: the two conflicts show, Remove on each, then Set.
+# R4: the page has one row. Its dialog shows the two conflicts, Remove on
+# each, then Set.
 begin R4-remove-and-set
 page 'Global Key'
+tree r4-page
+shot settings-r4-page
+expect "the row shows that petlauncher has no key" a11y-r4-page.txt \
+    tree_has "push button 'Set shortcut…'"
+click 'push button' 'Set shortcut…'
+allow_inhibit
 tree r4-conflicts
 shot settings-r4-conflicts
+expect "GNOME Shell pauses its shortcuts for the dialog" app-program.log \
+    logged "shortcuts of GNOME Shell paused true"
 expect "the custom shortcut shows as a conflict" a11y-r4-conflicts.txt \
     tree_has "list item 'Show Scratch Notes'"
 expect "the input source switch shows as a conflict" a11y-r4-conflicts.txt \
     tree_has "list item 'Switch to next input source'"
-expect "no Set button while a conflict is left" a11y-r4-conflicts.txt \
-    tree_lacks "push button 'Set'"
+expect "Set is off while a conflict is left" a11y-r4-conflicts.txt \
+    eval "! is_sensitive 'push button' Set"
+# GNOME Shell has Super+Space for the input source switch: the key comes to
+# the dialog only while GNOME Shell pauses its shortcuts.
+keys Super_L+space
+expect "Super+Space comes to the dialog" app-program.log logged 'pressed "<Super>space"'
 click 'push button' Remove 0
 shot settings-r4-one-conflict
 click 'push button' Remove 0
@@ -338,16 +401,16 @@ expect "the built-in key keeps its other accelerators" keyfile-after-remove.ini 
     keyfile_has "switch-input-source=['XF86Keyboard']"
 expect "no key of petlauncher before Set" keyfile-after-remove.ini \
     eval '! keyfile_has custom-keybindings/petlauncher'
-expect "Set shows with no conflict" a11y-r4-no-conflict.txt tree_has "push button 'Set'"
+expect "Set is on with no conflict" a11y-r4-no-conflict.txt is_sensitive 'push button' Set
 click 'push button' Set
-sleep 0.5
+sleep 1
 keyfile >"$OUT/keyfile-after-set.ini"
 cp "$config/settings.toml" "$OUT/settings-after-set.toml"
 tree r4-set
 shot settings-r4-set
 expect "the key is written to the test key file" keyfile-after-set.ini \
     binding_is petlauncher '<Super>space'
-expect "the window shows the key of GNOME" a11y-r4-set.txt tree_has "label 'Super+Space    <Super>space'"
+expect "the row shows the key of GNOME" a11y-r4-set.txt tree_has "push button 'Super+Space'"
 expect "settings.toml has the same key" settings-after-set.toml hotkey_in_effect '<Super>space'
 expect "the marker file exists" app-program.log test -e "$state_dir/global-key-installed"
 open_launcher
@@ -359,42 +422,52 @@ expect "the notice in the launcher is gone" a11y-launcher-after-set.txt \
     eval "! grep -q 'Show Scratch Notes' '$OUT/a11y-launcher-after-set.txt'"
 hide_launcher
 
-# R4: a different key by key capture.
+# R4: a different key, pressed in the dialog.
 begin R4-capture
-click 'toggle button' 'Press a Key'
-shot settings-r4-capture-waits
+click 'push button' 'Super+Space'
+allow_inhibit
 keys Control_L+Super_L+k
 sleep 0.5
 tree r4-captured
-expect "the pressed key shows as the new key" a11y-r4-captured.txt \
-    eval "[[ \$(text_of text 'New key') == '<Control><Super>k' ]]"
+shot settings-r4-captured
+expect "the pressed key shows in the dialog" a11y-r4-captured.txt tree_has "label 'Ctrl+Super+K'"
 click 'push button' Set
-sleep 0.5
+sleep 1
 keyfile >"$OUT/keyfile-after-capture.ini"
 cp "$config/settings.toml" "$OUT/settings-after-capture.toml"
-shot settings-r4-captured
 expect "the key file has the captured key" keyfile-after-capture.ini \
     binding_is petlauncher '<Control><Super>k'
 expect "settings.toml has the captured key" settings-after-capture.toml \
     settings_has 'hotkey = "<Control><Super>k"'
 
-# R4: a wrong text, then no global key.
-begin R4-typed-and-removed
-fill text 'New key' '<Win>space'
-tree r4-bad-text
-shot settings-r4-bad-text
-expect "a wrong key text shows its error" a11y-r4-bad-text.txt tree_has "<Win>"
-click 'push button' 'Remove Key'
-keyfile >"$OUT/keyfile-after-remove-key.ini"
+# R4: BackSpace and Set remove the key. Then a key again.
+begin R4-backspace
+click 'push button' 'Ctrl+Super+K'
+allow_inhibit
+keys Escape
+sleep 0.8
+expect "Escape closes the dialog" app-program.log tree_lacks "label 'Set the Global Key'"
+click 'push button' 'Ctrl+Super+K'
+allow_inhibit
+keys BackSpace
+sleep 0.5
+tree r4-no-key
 shot settings-r4-no-key
-expect "Remove Key leaves petlauncher with an empty binding" keyfile-after-remove-key.ini \
-    binding_is petlauncher ''
-cp "$config/settings.toml" "$OUT/settings-after-remove-key.toml"
-expect "settings.toml has no key" settings-after-remove-key.toml settings_has 'hotkey = ""'
-fill text 'New key' '<Control><Super>k'
+expect "BackSpace offers no key" a11y-r4-no-key.txt tree_has "label 'No key'"
 click 'push button' Set
-keyfile >"$OUT/keyfile-after-typed.ini"
-expect "a typed key is written" keyfile-after-typed.ini \
+sleep 1
+keyfile >"$OUT/keyfile-after-remove-key.ini"
+cp "$config/settings.toml" "$OUT/settings-after-remove-key.toml"
+expect "Set with no key leaves petlauncher with an empty binding" keyfile-after-remove-key.ini \
+    binding_is petlauncher ''
+expect "settings.toml has no key" settings-after-remove-key.toml settings_has 'hotkey = ""'
+click 'push button' 'Set shortcut…'
+allow_inhibit
+keys Control_L+Super_L+k
+click 'push button' Set
+sleep 1
+keyfile >"$OUT/keyfile-after-again.ini"
+expect "a pressed key is written again" keyfile-after-again.ini \
     binding_is petlauncher '<Control><Super>k'
 
 # R9 step 8 and R3 "Run in background".
@@ -584,6 +657,13 @@ expect "Save is not active with an error" a11y-form-error.txt eval "! is_sensiti
 fill text Keyword rk
 click text Command
 type_text 'https://github.com/pre/rektangel/pull/%s'
+shot settings-form-switch-off
+click 'check box' 'Run without argument'
+sleep 0.5
+tree form-switch-on
+shot settings-form-switch-on
+expect "the switch shows the command without argument" a11y-form-switch-on.txt \
+    tree_has "Different command without argument (optional)"
 click text 'Command without argument'
 type_text 'https://github.com/pre/rektangel/pulls'
 shot settings-form-r7
@@ -604,11 +684,31 @@ expect "R7 step 2: with no argument" launches.log \
 begin R6-order-and-remove
 page Shortcuts
 shot settings-shortcuts-list
-click 'push button' 'Move Up' 6
-sleep 0.5
+# The handle of the last row to the upper half of the row before it.
+read -r hx hy hw hh < <(a11y find "$title" image 'Drag to Move' 6)
+read -r rx ry rw rh < <(a11y find "$title" 'list item' 'Docs in Edge')
+drag_start "$hx" "$hy" "$hw" "$hh"
+drag_to "$hx" "$((hy - 20))"
+drag_to "$((rx + rw / 2))" "$((ry + rh / 4))"
+shot settings-shortcuts-drag
+drag_end
 cp "$config/shortcuts.toml" "$OUT/shortcuts-after-move.toml"
-expect "Move Up puts the last shortcut above the one before it" shortcuts-after-move.toml \
+expect "a drag puts the last shortcut above the one before it" shortcuts-after-move.toml \
     eval "[[ \$(grep -n '^name = ' '$OUT/shortcuts-after-move.toml' | tail -2 | cut -d'\"' -f2 | tr '\n' ,) == 'Rektangel pulls,Docs in Edge,' ]]"
+read -r hx hy hw hh < <(a11y find "$title" image 'Drag to Move' 0)
+click_box "$hx" "$hy" "$hw" "$hh"
+tree after-handle-click
+expect "a click on the handle does not open the form" a11y-after-handle-click.txt \
+    tree_has "push button 'Add a Shortcut'"
+click 'list item' 'Docs in Edge'
+sleep 0.8
+click 'push button' Back
+sleep 0.8
+keys Alt_L+Up
+sleep 1
+cp "$config/shortcuts.toml" "$OUT/shortcuts-after-alt-up.toml"
+expect "Alt+Up moves the focused shortcut up" shortcuts-after-alt-up.toml \
+    eval "[[ \$(grep -n '^name = ' '$OUT/shortcuts-after-alt-up.toml' | tail -2 | cut -d'\"' -f2 | tr '\n' ,) == 'Docs in Edge,Rektangel pulls,' ]]"
 click 'list item' 'Docs in Edge'
 sleep 0.8
 click 'push button' 'Remove Shortcut'
