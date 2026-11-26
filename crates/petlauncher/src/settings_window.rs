@@ -6,10 +6,18 @@ use std::path::Path;
 
 use adw::prelude::*;
 
+use crate::stop;
+
 /// The extension does not move a window with this title (ADR 0005).
 pub const TITLE: &str = "petlauncher Settings";
 
-pub fn present(app: &adw::Application, config_dir: &Path) {
+/// Shows the window. `run_in_background` gives the setting now: when it is
+/// off, the process stops after this window and the other windows hide.
+pub fn present(
+    app: &adw::Application,
+    config_dir: &Path,
+    run_in_background: impl Fn() -> bool + 'static,
+) {
     let existing = app
         .windows()
         .into_iter()
@@ -29,13 +37,21 @@ pub fn present(app: &adw::Application, config_dir: &Path) {
         .build();
     let view = adw::ToolbarView::builder().content(&page).build();
     view.add_top_bar(&adw::HeaderBar::new());
-    adw::ApplicationWindow::builder()
+    let window = adw::ApplicationWindow::builder()
         .application(app)
         .title(TITLE)
         .default_width(600)
         .default_height(400)
         .hide_on_close(true)
         .content(&view)
-        .build()
-        .present();
+        .build();
+    window.connect_close_request(move |window| {
+        if !run_in_background() {
+            if let Some(app) = window.application() {
+                stop::stop_when_no_window_shows(&app);
+            }
+        }
+        gtk::glib::Propagation::Proceed
+    });
+    window.present();
 }

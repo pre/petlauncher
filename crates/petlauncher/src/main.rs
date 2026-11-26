@@ -14,6 +14,7 @@ mod notices;
 mod rows;
 mod selection;
 mod settings_window;
+mod stop;
 mod visibility;
 mod window;
 mod worker;

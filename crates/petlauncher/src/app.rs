@@ -126,9 +126,13 @@ impl Program {
             .activate(move |_: &adw::Application, _, _| launcher.show())
             .build();
         let config_dir = self.backend.config_dir().to_owned();
+        let backend = Rc::clone(&self.backend);
         let settings = gio::ActionEntry::builder("settings")
             .activate(move |app: &adw::Application, _, _| {
-                settings_window::present(app, &config_dir);
+                let backend = Rc::clone(&backend);
+                settings_window::present(app, &config_dir, move || {
+                    backend.settings().run_in_background
+                });
             })
             .build();
         let quit = gio::ActionEntry::builder("quit")

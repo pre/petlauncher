@@ -4,7 +4,6 @@
 
 use std::cell::{Cell, RefCell};
 use std::rc::{Rc, Weak};
-use std::time::Duration;
 
 use adw::prelude::*;
 use gtk::{gdk, glib};
@@ -18,6 +17,7 @@ use crate::log;
 use crate::model::{self, Arrival, Effect, LauncherModel, Press};
 use crate::notices::{NoticeKind, Notices};
 use crate::rows;
+use crate::stop;
 use crate::visibility::{Toggle, Visibility};
 
 /// The title that the GNOME Shell extension looks for (ADR 0005). No other
@@ -33,9 +33,6 @@ pub const COLLAPSED_HEIGHT: i32 = 64;
 
 /// The number of rows that show before the list scrolls.
 const VISIBLE_ROWS: i32 = 8;
-
-/// The time from the hide to the stop when "Run in background" is off.
-const STOP_DELAY: Duration = Duration::from_secs(1);
 
 pub struct LauncherWindow {
     window: adw::ApplicationWindow,
@@ -284,26 +281,10 @@ impl LauncherWindow {
         log::debug(format_args!("hide, {reason:?}"));
         self.window.set_visible(false);
         if !self.backend.settings().run_in_background {
-            self.stop_later();
+            if let Some(app) = self.window.application() {
+                stop::stop_when_no_window_shows(&app);
+            }
         }
-    }
-
-    /// "Run in background" is off: the process stops when the window is
-    /// still hidden after `STOP_DELAY`. On Wayland the text of a Copy
-    /// belongs to this process. GNOME Shell keeps a copy of the clipboard
-    /// when its owner stops, but only after it read the text: a test showed
-    /// the previous clipboard text after a stop at once.
-    fn stop_later(&self) {
-        let window = self.window.clone();
-        glib::timeout_add_local_once(STOP_DELAY, move || {
-            if window.is_visible() {
-                return;
-            }
-            if let Some(app) = window.application() {
-                log::info("\"Run in background\" is off: stop");
-                app.quit();
-            }
-        });
     }
 
     fn set_width(&self, width: u32) {

@@ -4,7 +4,7 @@
 
 use std::cell::{Cell, RefCell};
 use std::rc::{Rc, Weak};
-use std::time::{Duration, Instant};
+use std::time::Instant;
 
 use adw::prelude::*;
 use gtk::glib;
@@ -17,17 +17,13 @@ use super::view::{self, OpenWord};
 use super::TITLE;
 use crate::log;
 use crate::selection::Selection;
+use crate::stop;
 
 /// The number of words that the search field suggests.
 const SUGGESTIONS: usize = 12;
 
 /// Up and Down scroll the page by this number of pixels.
 const SCROLL_STEP: f64 = 48.0;
-
-/// With "Run in background" off, the process stops this time after the
-/// last window hides: the same rule and the same reason (the clipboard) as
-/// for the launcher in `window.rs`.
-const STOP_DELAY: Duration = Duration::from_secs(1);
 
 /// The names of the pages in the stack.
 const WORD: &str = "word";
@@ -241,7 +237,9 @@ impl DictionaryWindow {
         self.window.connect_close_request(move |window| {
             log::debug("dictionary window: hide");
             if !run_in_background() {
-                stop_later(window);
+                if let Some(app) = window.application() {
+                    stop::stop_when_no_window_shows(&app);
+                }
             }
             glib::Propagation::Proceed
         });
@@ -565,21 +563,6 @@ fn unavailable_page() -> (adw::StatusPage, ProblemLabels) {
         )
         .build();
     (page, labels)
-}
-
-/// "Run in background" is off: the process stops when no window of the
-/// program shows after `STOP_DELAY`.
-fn stop_later(window: &adw::ApplicationWindow) {
-    let Some(app) = window.application() else {
-        return;
-    };
-    glib::timeout_add_local_once(STOP_DELAY, move || {
-        if app.windows().iter().any(|window| window.is_visible()) {
-            return;
-        }
-        log::info("\"Run in background\" is off: stop");
-        app.quit();
-    });
 }
 
 /// A signal handler that calls `f` while the window exists.
