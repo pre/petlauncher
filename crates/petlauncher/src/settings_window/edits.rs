@@ -91,6 +91,26 @@ impl ShortcutEdit {
             Self::Move { from, to } => editor.move_shortcut(*from, *to),
         }
     }
+
+    /// The move after a drop of the shortcut at `from` on the row `onto`:
+    /// above that row, or below it when `lower_half`. `None` when the
+    /// shortcut stays at its place.
+    pub fn drop(from: usize, onto: usize, lower_half: bool) -> Option<Self> {
+        let before = onto + usize::from(lower_half);
+        let to = if before > from { before - 1 } else { before };
+        (to != from).then_some(Self::Move { from, to })
+    }
+
+    /// The move of Alt+Up (`up`) or Alt+Down in a list of `count`
+    /// shortcuts. `None` at the end of the list.
+    pub fn step(from: usize, up: bool, count: usize) -> Option<Self> {
+        let to = if up {
+            from.checked_sub(1)?
+        } else {
+            Some(from + 1).filter(|to| *to < count)?
+        };
+        Some(Self::Move { from, to })
+    }
 }
 
 /// Why the window does not change an inline list of shortcuts.
@@ -430,5 +450,39 @@ cmd = \"https://github.com/pre/rektangel/pull/%s\"
             "{}",
             refused(&error)
         );
+    }
+
+    fn moved(from: usize, to: usize) -> Option<ShortcutEdit> {
+        Some(ShortcutEdit::Move { from, to })
+    }
+
+    #[test]
+    fn a_drop_on_the_upper_half_of_a_row_puts_the_shortcut_above_it() {
+        assert_eq!(ShortcutEdit::drop(3, 1, false), moved(3, 1));
+        assert_eq!(ShortcutEdit::drop(1, 3, false), moved(1, 2));
+        assert_eq!(ShortcutEdit::drop(4, 0, false), moved(4, 0));
+    }
+
+    #[test]
+    fn a_drop_on_the_lower_half_of_a_row_puts_the_shortcut_below_it() {
+        assert_eq!(ShortcutEdit::drop(3, 1, true), moved(3, 2));
+        assert_eq!(ShortcutEdit::drop(1, 3, true), moved(1, 3));
+        assert_eq!(ShortcutEdit::drop(0, 4, true), moved(0, 4));
+    }
+
+    #[test]
+    fn a_drop_at_the_same_place_is_no_edit() {
+        assert_eq!(ShortcutEdit::drop(2, 2, false), None);
+        assert_eq!(ShortcutEdit::drop(2, 2, true), None);
+        assert_eq!(ShortcutEdit::drop(2, 3, false), None);
+        assert_eq!(ShortcutEdit::drop(2, 1, true), None);
+    }
+
+    #[test]
+    fn alt_up_and_alt_down_move_one_place_and_stop_at_the_ends() {
+        assert_eq!(ShortcutEdit::step(2, true, 5), moved(2, 1));
+        assert_eq!(ShortcutEdit::step(2, false, 5), moved(2, 3));
+        assert_eq!(ShortcutEdit::step(0, true, 5), None);
+        assert_eq!(ShortcutEdit::step(4, false, 5), None);
     }
 }

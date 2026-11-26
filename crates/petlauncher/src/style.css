@@ -53,3 +53,17 @@ list.results > row {
 .query-bar > button.settings {
   margin-left: 8px;
 }
+
+/* The settings window: the place of a dragged shortcut in the list. */
+row.drop-above {
+  box-shadow: inset 0 2px @accent_bg_color;
+}
+
+row.drop-below {
+  box-shadow: inset 0 -2px @accent_bg_color;
+}
+
+/* A dragged shortcut: its image needs a background. */
+row.dragged {
+  background-color: @view_bg_color;
+}
