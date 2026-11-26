@@ -15,9 +15,9 @@ entry.query:focus-within {
   outline: none;
 }
 
-entry.query > image {
+.query-bar > image.search-icon {
   -gtk-icon-size: 20px;
-  margin-right: 18px;
+  margin: 0 12px 0 6px;
 }
 
 /* A margin, not a padding of the list: the maximum height of the list is a

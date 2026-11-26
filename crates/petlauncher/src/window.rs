@@ -66,7 +66,6 @@ impl LauncherWindow {
     ) -> Rc<Self> {
         let entry = gtk::Entry::builder()
             .placeholder_text("Search")
-            .primary_icon_name("system-search-symbolic")
             .has_frame(false)
             .hexpand(true)
             .valign(gtk::Align::Center)
@@ -76,6 +75,14 @@ impl LauncherWindow {
             .height_request(COLLAPSED_HEIGHT)
             .css_classes(["query-bar"])
             .build();
+        // The icon is not a part of the entry, so it is a place to drag the
+        // window from.
+        query_bar.append(
+            &gtk::Image::builder()
+                .icon_name("system-search-symbolic")
+                .css_classes(["search-icon"])
+                .build(),
+        );
         query_bar.append(&entry);
         // The button takes no focus, so the typed keys stay in the query
         // line.
@@ -107,11 +114,20 @@ impl LauncherWindow {
             .css_classes(["notices"])
             .build();
         let separator = gtk::Separator::builder().visible(false).build();
+        let top = gtk::Box::builder()
+            .orientation(gtk::Orientation::Vertical)
+            .build();
+        top.append(&query_bar);
+        top.append(&notice_box);
+        // A press and a drag with the mouse on the free space of the query
+        // line or of the notices moves the window. The widgets in it keep
+        // their clicks. The rows are not in it, so a click on a row stays a
+        // click.
+        let handle = gtk::WindowHandle::builder().child(&top).build();
         let content = gtk::Box::builder()
             .orientation(gtk::Orientation::Vertical)
             .build();
-        content.append(&query_bar);
-        content.append(&notice_box);
+        content.append(&handle);
         content.append(&separator);
         content.append(&scroller);
         let window = adw::ApplicationWindow::builder()
