@@ -21,13 +21,12 @@ The crate uses gtk4 0.11 with the feature `gnome_46` (GTK 4.14, GLib 2.80, Pango
 | `petlauncher` | Starts the program and shows the launcher. When the program runs already, it shows its launcher. |
 | `petlauncher --hidden` | Starts the program with no window. This is the command of the autostart file. When the program runs already, nothing changes. When "Run in background" is off, the program stops at once. |
 | `petlauncher toggle` | Shows the launcher, or hides it when it shows. When the program does not run, this process starts it and shows the launcher. The global key runs this command (R4). |
-| `petlauncher convert-shortcuts [--force]` | Writes the shortcuts of `~/.config/ulauncher/shortcuts.json` to `shortcuts.toml` and prints a summary (R6). Without `--force`, an existing `shortcuts.toml` stops the command. |
 | `petlauncher --version` | Prints the version. |
 | `petlauncher --help` | Prints the commands. |
 
-The exit status is 0 on success, 1 when `convert-shortcuts` fails, and 2 for a wrong argument.
+The exit status is 0 on success and 2 for a wrong argument.
 
-One instance of the program runs in each session. It is a `GApplication` with the ID `pet.repo.Petlauncher` and the flag `HANDLES_COMMAND_LINE`. A second start sends its arguments to the running instance, waits until the instance did the command, and then stops. The commands `convert-shortcuts`, `--version` and `--help` run only in the new process.
+One instance of the program runs in each session. It is a `GApplication` with the ID `pet.repo.Petlauncher` and the flag `HANDLES_COMMAND_LINE`. A second start sends its arguments to the running instance, waits until the instance did the command, and then stops. The commands `--version` and `--help` run only in the new process.
 
 | Environment variable | Effect |
 |---|---|

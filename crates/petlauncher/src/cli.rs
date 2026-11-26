@@ -8,8 +8,6 @@ Usage:
   petlauncher                          Start petlauncher and show the launcher
   petlauncher --hidden                 Start petlauncher with no window (start at login)
   petlauncher toggle                   Show or hide the launcher (the global key)
-  petlauncher convert-shortcuts [--force]
-                                       Write the Ulauncher shortcuts to shortcuts.toml
   petlauncher --version                Show the version
   petlauncher --help                   Show this text
 ";
@@ -23,9 +21,6 @@ pub enum Command {
     },
     /// Shows or hides the launcher. Starts the program when it does not run.
     Toggle,
-    ConvertShortcuts {
-        force: bool,
-    },
     Version,
     Help,
 }
@@ -56,8 +51,6 @@ where
         [] => Ok(Command::Start { hidden: false }),
         ["--hidden"] => Ok(Command::Start { hidden: true }),
         ["toggle"] => Ok(Command::Toggle),
-        ["convert-shortcuts"] => Ok(Command::ConvertShortcuts { force: false }),
-        ["convert-shortcuts", "--force"] => Ok(Command::ConvertShortcuts { force: true }),
         ["--version"] => Ok(Command::Version),
         ["--help" | "-h"] => Ok(Command::Help),
         [first, ..] if args.len() == 1 => Err(UsageError(format!("Unknown argument: {first}"))),
@@ -92,18 +85,6 @@ mod tests {
     }
 
     #[test]
-    fn convert_shortcuts_accepts_force() {
-        assert_eq!(
-            parse_text(&["convert-shortcuts"]),
-            Ok(Command::ConvertShortcuts { force: false })
-        );
-        assert_eq!(
-            parse_text(&["convert-shortcuts", "--force"]),
-            Ok(Command::ConvertShortcuts { force: true })
-        );
-    }
-
-    #[test]
     fn version_and_help_are_options() {
         assert_eq!(parse_text(&["--version"]), Ok(Command::Version));
         assert_eq!(parse_text(&["--help"]), Ok(Command::Help));
@@ -120,12 +101,7 @@ mod tests {
 
     #[test]
     fn rejects_extra_arguments() {
-        for args in [
-            &["toggle", "now"][..],
-            &["--hidden", "toggle"],
-            &["convert-shortcuts", "--force", "x"],
-            &["--force", "convert-shortcuts"],
-        ] {
+        for args in [&["toggle", "now"][..], &["--hidden", "toggle"]] {
             let error = parse_text(args).unwrap_err();
 
             assert_eq!(error.0, format!("Unknown arguments: {}", args.join(" ")));

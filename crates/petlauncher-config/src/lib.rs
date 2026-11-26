@@ -8,7 +8,6 @@
 //! of the settings window. The changes keep the owner's comments and
 //! layout.
 
-pub mod convert;
 pub mod edit;
 pub mod error;
 pub mod load;
@@ -25,7 +24,7 @@ pub use load::{load_settings, load_shortcuts};
 pub use model::{
     Browser, Dictionary, FileSearch, KeepQuery, ParseKeepQueryError, Settings, Shortcut,
 };
-pub use paths::{config_dir, ulauncher_shortcuts_file, ConfigFile};
+pub use paths::{config_dir, ConfigFile};
 pub use store::{ConfigStore, Reload};
 pub use validate::{validate, Problem, ProblemKind, Severity};
 pub use watch::ConfigWatcher;

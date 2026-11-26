@@ -8,7 +8,7 @@ use petlauncher_config::{
 
 const OWNER_SETTINGS: &str = r#"# The owner's settings, with comments.
 
-window_width = 750   # same as Ulauncher
+window_width = 750   # my width
 
 [file_search]
 keyword = "f"

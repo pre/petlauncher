@@ -40,18 +40,6 @@ fn main() -> ExitCode {
             print!("{}", cli::USAGE);
             ExitCode::SUCCESS
         }
-        Command::ConvertShortcuts { force } => {
-            match petlauncher_config::convert::convert_shortcuts(force) {
-                Ok(summary) => {
-                    print!("{summary}");
-                    ExitCode::SUCCESS
-                }
-                Err(error) => {
-                    eprintln!("petlauncher: {error}");
-                    ExitCode::FAILURE
-                }
-            }
-        }
         Command::Start { .. } | Command::Toggle => {
             // `cli::parse` accepted the arguments, so they are UTF-8.
             let args: Vec<String> = std::env::args().collect();

@@ -1073,7 +1073,6 @@ version = "0.1.0"
 dependencies = [
  "notify",
  "serde",
- "serde_json",
  "tempfile",
  "toml_edit",
 ]

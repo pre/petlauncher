@@ -42,15 +42,6 @@ pub fn config_dir() -> Option<PathBuf> {
     .map(|base| base.join("petlauncher"))
 }
 
-/// The shortcuts file of Ulauncher, `~/.config/ulauncher/shortcuts.json`.
-pub fn ulauncher_shortcuts_file() -> Option<PathBuf> {
-    user_config_home(
-        std::env::var_os("XDG_CONFIG_HOME").as_deref(),
-        std::env::var_os("HOME").as_deref(),
-    )
-    .map(|base| base.join("ulauncher").join("shortcuts.json"))
-}
-
 /// The base directory for user settings by the XDG Base Directory rules:
 /// `XDG_CONFIG_HOME` when it is an absolute path, else `HOME/.config`.
 pub fn user_config_home(xdg_config_home: Option<&OsStr>, home: Option<&OsStr>) -> Option<PathBuf> {
@@ -100,9 +91,6 @@ mod tests {
     fn config_dir_ends_in_petlauncher() {
         if let Some(dir) = config_dir() {
             assert!(dir.ends_with("petlauncher"));
-        }
-        if let Some(file) = ulauncher_shortcuts_file() {
-            assert!(file.ends_with("ulauncher/shortcuts.json"));
         }
     }
 }

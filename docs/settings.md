@@ -168,24 +168,3 @@ change. petlauncher shows the warning.
 
 A conflict between the two files is always a warning, because then no single
 file is wrong and petlauncher cannot select which file to stop.
-
-## Convert the Ulauncher shortcuts
-
-The command `petlauncher convert-shortcuts` reads the Ulauncher file
-`~/.config/ulauncher/shortcuts.json` and writes `shortcuts.toml` one time.
-
-- The shortcuts keep the order of the Ulauncher file. Each field with the
-  same name keeps its value. petlauncher does not use the fields `id` and
-  `added`.
-- A shortcut with the keyword of the dictionary or of the file search gets
-  that keyword two times. Thus `d` becomes `dd`. If a different shortcut has
-  that keyword, the keyword gets one more repetition.
-- A script with more than one line becomes a multi-line string. It gets a
-  line end at its end, so that the closing `"""` is on its own line.
-- A script that only opens a URL in a different browser stays a script. To
-  use the `browser` key, change the shortcut yourself.
-- An existing `shortcuts.toml` stays, and the command stops with an error.
-  The force flag writes over the file.
-- The Ulauncher file does not change.
-- An icon path stays as it is. The icons below `/usr/share/ulauncher/` are
-  not available after you remove Ulauncher.
