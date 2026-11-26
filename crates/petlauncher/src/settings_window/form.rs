@@ -50,10 +50,15 @@ pub struct ShortcutForm {
     pub keyword: String,
     /// A URL or a script, with `%s` for the argument.
     pub cmd: String,
-    /// R7: the URL or the script for a query with no argument.
+    /// R7: the URL or the script for a query with no argument. The form
+    /// keeps the text while the switch `run_without_argument` is off, but
+    /// the save then writes no text.
     pub cmd_without_argument: String,
     pub icon: String,
     pub is_default_search: bool,
+    /// The switch "Run without argument". The core also runs a stored
+    /// `cmd_without_argument` when the setting is false, so the switch is
+    /// on for such a shortcut.
     pub run_without_argument: bool,
     pub browser: BrowserChoice,
     /// The command of `BrowserChoice::Command`.
@@ -91,7 +96,8 @@ impl ShortcutForm {
             cmd_without_argument: shortcut.cmd_without_argument.clone(),
             icon: shortcut.icon.clone(),
             is_default_search: shortcut.is_default_search,
-            run_without_argument: shortcut.run_without_argument,
+            run_without_argument: shortcut.run_without_argument
+                || !shortcut.cmd_without_argument.trim().is_empty(),
             browser,
             browser_command,
             target,
@@ -106,7 +112,11 @@ impl ShortcutForm {
             name: self.name.trim().to_owned(),
             keyword: self.keyword.trim().to_owned(),
             cmd: self.cmd.clone(),
-            cmd_without_argument: self.cmd_without_argument.clone(),
+            cmd_without_argument: if self.run_without_argument {
+                self.cmd_without_argument.clone()
+            } else {
+                String::new()
+            },
             icon: self.icon.trim().to_owned(),
             is_default_search: self.is_default_search,
             run_without_argument: self.run_without_argument,
@@ -132,12 +142,13 @@ impl ShortcutForm {
     /// the list after the save. An error stops the save, a warning does
     /// not.
     pub fn problems(&self, settings: &Settings, shortcuts: &[Shortcut]) -> Vec<FieldProblem> {
+        let saved = self.to_shortcut();
         let index = self.index_in(shortcuts);
         let mut list = shortcuts.to_vec();
         if index < list.len() {
-            list[index] = self.to_shortcut();
+            list[index] = saved.clone();
         } else {
-            list.push(self.to_shortcut());
+            list.push(saved.clone());
         }
         let mut problems: Vec<FieldProblem> = validate(settings, &list)
             .into_iter()
@@ -148,13 +159,13 @@ impl ShortcutForm {
                 text: keyword_text(&problem.kind, index),
             })
             .collect();
-        if self.name.trim().is_empty() {
+        if saved.name.is_empty() {
             problems.push(warning(
                 Field::Name,
                 "The name is empty, so the row has no title",
             ));
         }
-        if self.cmd.trim().is_empty() && self.cmd_without_argument.trim().is_empty() {
+        if saved.cmd.trim().is_empty() && saved.cmd_without_argument.trim().is_empty() {
             problems.push(warning(
                 Field::Command,
                 "The command is empty, so Enter does nothing",
@@ -440,6 +451,53 @@ mod tests {
 
         assert!(can_save(&problems));
         assert!(field_text(&problems, Field::Command).is_some());
+    }
+
+    #[test]
+    fn a_stored_command_without_argument_turns_the_switch_on() {
+        let stored = Shortcut {
+            cmd_without_argument: "https://jira.example.com/".into(),
+            run_without_argument: false,
+            ..list()[0].clone()
+        };
+
+        let form = ShortcutForm::edit(0, &stored);
+
+        assert!(form.run_without_argument);
+        assert!(!ShortcutForm::edit(0, &list()[0]).run_without_argument);
+    }
+
+    #[test]
+    fn the_switch_off_saves_no_command_without_argument_and_the_form_keeps_the_text() {
+        let mut form = filled("jira");
+        form.cmd_without_argument = "https://jira.example.com/".into();
+        form.run_without_argument = false;
+
+        let saved = form.to_shortcut();
+
+        assert_eq!(saved.cmd_without_argument, "");
+        assert!(!saved.run_without_argument);
+        assert_eq!(form.cmd_without_argument, "https://jira.example.com/");
+        form.run_without_argument = true;
+        assert_eq!(
+            form.to_shortcut().cmd_without_argument,
+            "https://jira.example.com/"
+        );
+    }
+
+    #[test]
+    fn a_hidden_command_without_argument_does_not_hide_an_empty_command() {
+        let mut form = filled("jira");
+        form.cmd.clear();
+        form.cmd_without_argument = "https://jira.example.com/".into();
+        form.run_without_argument = false;
+
+        let problems = form.problems(&Settings::default(), &list());
+
+        assert!(field_text(&problems, Field::Command).is_some());
+        form.run_without_argument = true;
+        let problems = form.problems(&Settings::default(), &list());
+        assert!(field_text(&problems, Field::Command).is_none());
     }
 
     #[test]

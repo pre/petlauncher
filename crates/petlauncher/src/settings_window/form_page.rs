@@ -85,15 +85,33 @@ impl FormPage {
         content.add(&command);
         content.add(&command_messages);
 
-        let (cmd_without_argument, without_box) = script_view("Command without argument");
-        let without = adw::PreferencesGroup::builder()
-            .title("Command without argument")
-            .description(
-                "A URL or a script for the keyword with no argument. When this is empty, the \
-                 switch \"Run without argument\" below decides.",
-            )
+        // The field shows only when the switch is on, so the layout tells
+        // that the switch decides and the field is a choice.
+        let run_without_argument = adw::SwitchRow::builder()
+            .title("Run without argument")
+            .subtitle("Enter with only the keyword runs the command")
             .build();
-        without.add(&without_box);
+        let (cmd_without_argument, without_box) = script_view("Command without argument");
+        let without_field = gtk::Box::builder()
+            .orientation(gtk::Orientation::Vertical)
+            .spacing(6)
+            .margin_top(12)
+            .build();
+        without_field.append(
+            &gtk::Label::builder()
+                .label("Different command without argument (optional)")
+                .xalign(0.0)
+                .css_classes(["heading"])
+                .build(),
+        );
+        without_field.append(&without_box);
+        run_without_argument
+            .bind_property("active", &without_field, "visible")
+            .sync_create()
+            .build();
+        let without = adw::PreferencesGroup::new();
+        without.add(&run_without_argument);
+        without.add(&without_field);
         content.add(&without);
 
         let options = adw::PreferencesGroup::builder().title("Options").build();
@@ -101,14 +119,7 @@ impl FormPage {
             .title("Default search")
             .subtitle("When nothing matches the query, show this shortcut with the full query as its argument")
             .build();
-        let run_without_argument = adw::SwitchRow::builder()
-            .title("Run without argument")
-            .subtitle(
-                "Run the command also with no argument. Off: Enter with no argument does nothing.",
-            )
-            .build();
         options.add(&is_default_search);
-        options.add(&run_without_argument);
         content.add(&options);
 
         let (browser, browser_choices) = browser_row(context, &form.browser);
