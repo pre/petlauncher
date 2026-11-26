@@ -18,6 +18,9 @@ pub(crate) const SHORTCUTS_TEMPLATE: &str = include_str!("../templates/shortcuts
 /// removed. The lines up to and including the last empty line above the
 /// header belong to the place in the file and stay there, so the comment
 /// at the start of the file stays at the start.
+///
+/// A file that has the shortcuts as an inline list, `shortcut = [{ ... }]`,
+/// gets one `[[shortcut]]` block for each shortcut at its first change.
 #[derive(Debug, Clone)]
 pub struct ShortcutsEditor {
     document: DocumentMut,
@@ -35,8 +38,17 @@ impl ShortcutsEditor {
     /// value with the wrong type gives an error.
     pub(crate) fn parse(text: &str, path: &Path) -> Result<Self, ConfigError> {
         let (document, file) = deserialize::<ShortcutsFile>(text, path)?;
+        let mut document = document.into_mut();
+        if let Some(item) = document.get_mut("shortcut") {
+            if !item.is_array_of_tables() {
+                let inline = std::mem::take(item);
+                *item = inline
+                    .into_array_of_tables()
+                    .map_or_else(|same| same, Item::ArrayOfTables);
+            }
+        }
         Ok(Self {
-            document: document.into_mut(),
+            document,
             current: file.shortcut,
         })
     }
@@ -566,6 +578,21 @@ run_without_argument = true
         );
         assert_eq!(editor.move_shortcut(1, 1), Ok(()));
         assert_eq!(editor.text(), OWNER_TEXT);
+    }
+
+    #[test]
+    fn changes_shortcuts_that_the_file_has_as_an_inline_list() {
+        let text = "shortcut = [\n  { name = \"A\", keyword = \"a\", cmd = \"x\" },\n  { name = \"B\", keyword = \"b\", cmd = \"y\" },\n]\n";
+        let mut editor = ShortcutsEditor::parse(text, Path::new("s")).expect("valid text");
+
+        editor.add(&shortcut("C", "c", "z"));
+        editor.remove(0).expect("remove");
+
+        let keywords: Vec<String> = reparsed(&editor)
+            .into_iter()
+            .map(|shortcut| shortcut.keyword)
+            .collect();
+        assert_eq!(keywords, ["b", "c"]);
     }
 
     #[test]
