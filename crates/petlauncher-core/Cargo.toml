@@ -1,0 +1,13 @@
+[package]
+name = "petlauncher-core"
+description = "Query engine, path mode, keys and kept query of petlauncher, with no desktop dependency"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+petlauncher-config = { path = "../petlauncher-config" }
+
+[dev-dependencies]
+tempfile = "3"
