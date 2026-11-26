@@ -203,21 +203,26 @@ With the animations on, GNOME plays its open animation: the first frame has an o
 
 The shell logs of all runs have no JavaScript error or warning.
 
-The unit test `test-launcher.js` has 15 tests for the position rule, the moved place, the window rule and the icon rule. All pass.
+The unit test `test-launcher.js` has 21 tests for the position rules, the moved place, the window rule and the icon rule. All pass.
 
 #### Moved launcher (ADR 0009)
 
-`test/move-steps.sh` moves the launcher with the virtual pointer: a press on the search icon, five moves, and a release. Each case runs 3 times. Run with the debug build on 2026-11-26, 24 checks, 24 pass. Raw evidence: `~/daybook-evidence/petlauncher/2026-11-26-settings-nav/move-run1/` on the owner's computer, with `frames.tsv`, `events.json` and the program log.
+`test/move-steps.sh` moves the launcher with the virtual pointer: a press on the search icon, five moves, and a release. Each case runs 3 times. Run with the release build on 2026-11-26: 61 checks, 61 pass. Raw evidence: `~/daybook-evidence/petlauncher/2026-11-26-settings-nav/final-move/` on the owner's computer, with `frames.tsv`, `events.json`, the program log and the screenshots `launcher-pin-button.png`, `launcher-pinned-m1.png` and `settings-general-position.png`.
 
-| Case | Frame |
-|---|---|
-| A show with no kept query, monitor 0 | `1129,830` |
-| After a move by 300,-200 | `1429,630` |
-| The next show with the kept query, pointer on monitor 1, and the show after it | `1429,630` |
-| After the query was cleared, or after the keep time of 2 s | `1129,830` |
-| A kept query with no move, pointer on monitor 1 | `3593,568` |
+| Case | Frame on monitor 0 | Frame on monitor 1 |
+|---|---|---|
+| `center`, a show with no kept query | `1129,830` | `3593,568` |
+| `upper-third` | `1129,553` | `3593,368` |
+| `top` | `1129,56` | `3593,24` |
+| After a move by 300,-200 | `1429,630` | |
+| The next show with the kept query (pointer on monitor 1), and the show after it | `1429,630` | |
+| After the query was cleared, or after the keep time of 2 s | `1129,830` | |
+| A kept query with no move | | `3593,568` |
+| The pin after the move, then a show with no kept query: `custom_position = { x = 0.5997, y = 0.3602 }` | `1429,630` | `3784,432` |
 
-The order of the state and the map: each change of `kept-query-until` came to GNOME Shell 0.9 ms to 5.0 ms after the program set it (21 changes, mean 1.5 ms; the log of the program and the probe use the same monotonic clock). In these steps each change came 1129 ms or more before the next map of the launcher.
+The empty launcher is 750x64. The work areas are `0,32 3008x1660` and `3008,0 1920x1200`. After the pin, the pin button went away and the launcher stayed.
+
+The order of the state and the map: each change of `kept-query-until` came to GNOME Shell 0.9 ms to 1.8 ms after the program set it (21 changes, mean 1.2 ms; the log of the program and the probe use the same monotonic clock). A run with the debug build gave 0.9 ms to 5.0 ms. In these steps each change came 1125 ms or more before the next map of the launcher.
 
 #### Busy pointer
 

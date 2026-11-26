@@ -195,6 +195,8 @@ Environment: GNOME Shell 46.0, GTK 4.14.5, libadwaita 1.5.0, Ubuntu 24.04, relea
 
 After the change of the example names, `2026-11-26-full-after-rename` (3008x1692 and 1920x1200 at scale 1) ran the same steps: 103 checks, 103 pass, all shows of the launcher at the place of the rule, and 20 to 34 ms from `petlauncher toggle` to the first buffer of a show.
 
+After the gear, the drag area of `GtkWindowHandle`, the separate search icon and the show with `set_visible(true)`, `2026-11-26-settings-nav/final-program` (3008x1692 and 1920x1200 at scale 1, release build) ran the same steps: 103 checks, 103 pass.
+
 `settings-steps.sh` tests the settings window: [settings-window.md](settings-window.md).
 
 `dictionary-steps.sh` (through `nested-test.sh --steps`, with `PETLAUNCHER_WORDNET_PATH`) ran with the real dictionary rows of the `Launcher`, in `2026-11-26-dictionary-launcher-rows`. The window opened from `d launcher`, its links, history and search worked, it stayed when the launcher showed and hid again, and the extension did not move it on either monitor. The first page took 0.05 ms for the lookup, because the `Launcher` had opened the dictionary for the launcher rows. With missing data the launcher gives only the row "Install the dictionary", so the step reached the page of the missing data through the search field of the window. With "Run in background" off the process ran 3 s after the launcher hid and stopped after the window closed.
