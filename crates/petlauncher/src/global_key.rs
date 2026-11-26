@@ -4,7 +4,8 @@
 //! with the key of the setting `hotkey` and the command
 //! `petlauncher toggle`, but only when no other GNOME key binding has that
 //! key. The program never changes a different key binding. With a conflict
-//! it writes nothing and shows a notice in the launcher window, and it tries
+//! it writes nothing and shows a notice in the launcher window, with a
+//! button that opens the Global Key page of the settings window. It tries
 //! again at the next show and the next start.
 //!
 //! A marker file in the state directory records that the first installation
@@ -15,7 +16,7 @@ use std::fs;
 use std::io;
 use std::path::Path;
 
-use petlauncher_gnome::{Conflict, CustomShortcuts, SHORTCUTS_PAGE, TOGGLE_COMMAND};
+use petlauncher_gnome::{Conflict, CustomShortcuts, TOGGLE_COMMAND};
 
 /// The marker file in the state directory. Delete it to do the first
 /// installation again at the next start.
@@ -58,25 +59,33 @@ impl FirstInstall {
     }
 
     /// The notice for the launcher window, for a conflict only: one line
-    /// for each key binding with the key.
-    pub fn notice(&self) -> Option<String> {
+    /// for each key binding with the key. `label` gives the key as GNOME
+    /// Settings shows it, for example `key_label`.
+    pub fn notice(&self, label: impl Fn(&str) -> String) -> Option<String> {
         let Self::Conflicts { key, conflicts } = self else {
             return None;
         };
-        let mut text =
-            format!("petlauncher has no global key. {key} is the key of these bindings in {SHORTCUTS_PAGE}:");
+        let mut text = format!(
+            "petlauncher has no global key, because these key bindings of GNOME have {}:",
+            label(key)
+        );
         for conflict in conflicts {
             match &conflict.section {
                 Some(section) => text.push_str(&format!("\n• {section}: {}", conflict.name)),
                 None => text.push_str(&format!("\n• {}, {}", conflict.name, conflict.place())),
             }
         }
-        text.push_str(
-            "\nRemove the key there, or with the settings window of petlauncher. \
-             Then open this window again.",
-        );
         Some(text)
     }
+}
+
+/// The key as GNOME Settings shows it, for example "Super+Space" for
+/// `<Super>space`.
+pub fn key_label(accelerator: &str) -> String {
+    gtk::accelerator_parse(accelerator)
+        .map(|(key, modifiers)| gtk::accelerator_get_label(key, modifiers).to_string())
+        .filter(|label| !label.is_empty())
+        .unwrap_or_else(|| accelerator.to_owned())
 }
 
 /// Does the first installation when the marker file in `state_dir` does
@@ -218,23 +227,20 @@ mod tests {
     }
 
     #[test]
-    fn the_notice_names_the_shortcut_its_place_and_the_settings_window() {
+    fn the_notice_names_the_key_and_each_binding_with_it() {
         let fixture = Fixture::new();
 
-        let notice = fixture.install("<Super>space").unwrap().notice().unwrap();
+        let notice = fixture
+            .install("<Super>space")
+            .unwrap()
+            .notice(|key| format!("label of {key}"))
+            .unwrap();
 
-        assert!(
-            notice.starts_with(
-                "petlauncher has no global key. <Super>space is the key of these bindings in \
-                 GNOME Settings > Keyboard > View and Customize Shortcuts:"
-            ),
-            "{notice}"
+        assert_eq!(
+            notice,
+            "petlauncher has no global key, because these key bindings of GNOME have \
+             label of <Super>space:\n• Custom Shortcuts: Show Scratch Notes"
         );
-        assert!(
-            notice.contains("\n• Custom Shortcuts: Show Scratch Notes\n"),
-            "{notice}"
-        );
-        assert!(notice.contains("settings window"), "{notice}");
     }
 
     #[test]
@@ -248,7 +254,7 @@ mod tests {
         let result = fixture.install("<Super>space").unwrap();
 
         assert_eq!(result, FirstInstall::Installed("<Super>space".into()));
-        assert_eq!(result.notice(), None);
+        assert_eq!(result.notice(str::to_owned), None);
         assert_eq!(
             fixture.shortcuts().global_key().as_deref(),
             Some("<Super>space")
@@ -265,10 +271,14 @@ mod tests {
             .set_string("binding", "")
             .unwrap();
 
-        let notice = fixture.install("<Super>space").unwrap().notice().unwrap();
+        let notice = fixture
+            .install("<Super>space")
+            .unwrap()
+            .notice(str::to_owned)
+            .unwrap();
 
         assert!(
-            notice.contains("\n• Typing: Switch to next input source\n"),
+            notice.contains("\n• Typing: Switch to next input source"),
             "{notice}"
         );
     }

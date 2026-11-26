@@ -1,6 +1,7 @@
-//! The settings window: one window for the process, opened by the action
-//! `settings` (tray menu) and by Ctrl+comma in the launcher. The pages are
-//! in a list at the left edge. `docs/settings-window.md` describes the pages and
+//! The settings window: one window for the process, opened by the actions
+//! `settings` (tray menu, Ctrl+comma and the gear of the launcher) and
+//! `settings-page` (the notice of R4 in the launcher). The pages are in a
+//! list at the left edge. `docs/settings-window.md` describes the pages and
 //! the decisions.
 //!
 //! The window changes the files only through the editors of the store
@@ -66,7 +67,7 @@ impl Page {
         Page::Shortcuts,
     ];
 
-    /// The name of the page in the list of pages, for example `global-key`.
+    /// The name in the action `settings-page`, for example `global-key`.
     pub fn name(self) -> &'static str {
         match self {
             Page::General => "general",
@@ -74,6 +75,10 @@ impl Page {
             Page::Search => "search",
             Page::Shortcuts => "shortcuts",
         }
+    }
+
+    pub fn from_name(name: &str) -> Option<Page> {
+        Page::ALL.into_iter().find(|page| page.name() == name)
     }
 }
 
@@ -341,6 +346,15 @@ fn with_header(child: &impl IsA<gtk::Widget>) -> adw::ToolbarView {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn each_page_has_a_name_for_the_action_settings_page() {
+        for page in Page::ALL {
+            assert_eq!(Page::from_name(page.name()), Some(page));
+        }
+        assert_eq!(Page::from_name("global-key"), Some(Page::GlobalKey));
+        assert_eq!(Page::from_name("Global Key"), None);
+    }
 
     #[test]
     fn the_list_order_is_the_order_of_the_enum() {

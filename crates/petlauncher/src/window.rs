@@ -17,6 +17,7 @@ use crate::log;
 use crate::model::{self, Arrival, Effect, LauncherModel, Press};
 use crate::notices::{NoticeKind, Notices};
 use crate::rows;
+use crate::settings_window::Page;
 use crate::stop;
 use crate::visibility::{Toggle, Visibility};
 
@@ -35,9 +36,12 @@ pub const COLLAPSED_HEIGHT: i32 = 64;
 const VISIBLE_ROWS: i32 = 8;
 
 pub struct LauncherWindow {
+    /// The window itself, for the signal handlers of the notices.
+    this: Weak<LauncherWindow>,
     window: adw::ApplicationWindow,
     content: gtk::Box,
     entry: gtk::Entry,
+    settings: gtk::Button,
     notice_box: gtk::Box,
     separator: gtk::Separator,
     scroller: gtk::ScrolledWindow,
@@ -73,6 +77,17 @@ impl LauncherWindow {
             .css_classes(["query-bar"])
             .build();
         query_bar.append(&entry);
+        // The button takes no focus, so the typed keys stay in the query
+        // line.
+        let settings = gtk::Button::builder()
+            .icon_name("emblem-system-symbolic")
+            .tooltip_text("Settings (Ctrl+,)")
+            .can_focus(false)
+            .valign(gtk::Align::Center)
+            .css_classes(["flat", "circular", "settings"])
+            .build();
+        settings.update_property(&[gtk::accessible::Property::Label("Settings")]);
+        query_bar.append(&settings);
         let list = gtk::ListBox::builder()
             .selection_mode(gtk::SelectionMode::Single)
             .activate_on_single_click(true)
@@ -107,10 +122,12 @@ impl LauncherWindow {
             .build();
         window.add_css_class("petlauncher");
 
-        let this = Rc::new(Self {
+        let this = Rc::new_cyclic(|this| Self {
+            this: this.clone(),
             window,
             content,
             entry,
+            settings,
             notice_box,
             separator,
             scroller,
@@ -138,6 +155,8 @@ impl LauncherWindow {
         let weak = Rc::downgrade(self);
         self.entry
             .connect_changed(with(&weak, |this| this.text_changed()));
+        self.settings
+            .connect_clicked(with(&weak, |this| this.open_settings(None)));
 
         let keys = gtk::EventControllerKey::new();
         keys.set_propagation_phase(gtk::PropagationPhase::Capture);
@@ -394,8 +413,7 @@ impl LauncherWindow {
             Intent::Hide => self.hide(CloseReason::Escape),
             Intent::Settings => {
                 log::debug("Ctrl+comma: settings window");
-                self.hide(CloseReason::Escape);
-                let _ = WidgetExt::activate_action(&self.window, "app.settings", None);
+                self.open_settings(None);
             }
             Intent::Complete => {
                 let completion = self.model.borrow().completion().map(str::to_owned);
@@ -404,6 +422,20 @@ impl LauncherWindow {
                 }
             }
         }
+    }
+
+    /// Hides the launcher, as Escape does, and shows the settings window,
+    /// with `page` or with the page that it showed last.
+    fn open_settings(&self, page: Option<Page>) {
+        self.hide(CloseReason::Escape);
+        let _ = match page {
+            None => WidgetExt::activate_action(&self.window, "app.settings", None),
+            Some(page) => WidgetExt::activate_action(
+                &self.window,
+                "app.settings-page",
+                Some(&page.name().to_variant()),
+            ),
+        };
     }
 
     fn press(&self, key: Key) {
@@ -457,8 +489,8 @@ impl LauncherWindow {
         }
         let notices = self.notices.borrow();
         let lines = notices.lines();
-        for (kind, text) in &lines {
-            let (icon, class) = match kind {
+        for notice in &lines {
+            let (icon, class) = match notice.kind {
                 NoticeKind::Error => ("dialog-error-symbolic", "error"),
                 NoticeKind::Warning => ("dialog-warning-symbolic", "warning"),
             };
@@ -473,13 +505,17 @@ impl LauncherWindow {
                     .css_classes([class])
                     .build(),
             );
-            line.append(
+            let column = gtk::Box::builder()
+                .orientation(gtk::Orientation::Vertical)
+                .spacing(4)
+                .hexpand(true)
+                .build();
+            column.append(
                 &gtk::Label::builder()
-                    .label(*text)
+                    .label(notice.text)
                     .wrap(true)
                     .wrap_mode(gtk::pango::WrapMode::WordChar)
                     .xalign(0.0)
-                    .hexpand(true)
                     // GTK can measure the height before it knows the width.
                     // Then the label has its natural width, so a small
                     // maximum gives one line for each word.
@@ -487,6 +523,19 @@ impl LauncherWindow {
                     .selectable(false)
                     .build(),
             );
+            if notice.opens_key_settings {
+                let button = gtk::Button::builder()
+                    .label("Open Global Key Settings")
+                    .halign(gtk::Align::Start)
+                    .can_focus(false)
+                    .css_classes(["link"])
+                    .build();
+                button.connect_clicked(with(&self.this, |this| {
+                    this.open_settings(Some(Page::GlobalKey));
+                }));
+                column.append(&button);
+            }
+            line.append(&column);
             self.notice_box.append(&line);
         }
         self.notice_box.set_visible(!lines.is_empty());

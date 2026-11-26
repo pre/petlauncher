@@ -133,10 +133,21 @@ impl Program {
                 }
             })
             .build();
+        let weak = Rc::downgrade(self);
+        let settings_page = gio::ActionEntry::builder("settings-page")
+            .parameter_type(Some(glib::VariantTy::STRING))
+            .activate(move |_: &adw::Application, _, parameter| {
+                let page = parameter.and_then(|name| name.str().and_then(Page::from_name));
+                if let Some(program) = weak.upgrade() {
+                    program.present_settings(page);
+                }
+            })
+            .build();
         let quit = gio::ActionEntry::builder("quit")
             .activate(|app: &adw::Application, _, _| app.quit())
             .build();
-        self.app.add_action_entries([show, settings, quit]);
+        self.app
+            .add_action_entries([show, settings, settings_page, quit]);
     }
 
     fn command(&self, command_line: &gio::ApplicationCommandLine) -> glib::ExitCode {
@@ -243,7 +254,8 @@ impl Program {
                 } else {
                     log::info(line);
                 }
-                self.launcher.set_global_key_notice(result.notice());
+                self.launcher
+                    .set_global_key_notice(result.notice(global_key::key_label));
                 if !matches!(result, FirstInstall::Conflicts { .. }) {
                     self.global_key_pending.set(false);
                 }

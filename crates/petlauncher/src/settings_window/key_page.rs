@@ -15,6 +15,7 @@ use petlauncher_gnome::{CustomShortcuts, GnomeDesktop, SHORTCUTS_PAGE, SHORTCUT_
 use super::hotkey::{capture, Capture, HotkeyState};
 use super::widgets::{set_text, MessageRow};
 use super::Context;
+use crate::global_key::key_label as label;
 use crate::log;
 
 pub struct KeyPage {
@@ -284,14 +285,6 @@ fn report(context: &Context, key: Option<&str>) {
         }),
         Err(error) => context.toast(&format!("GNOME has the change, but {error}")),
     }
-}
-
-/// The key as GNOME Settings shows it, for example "Super+Space".
-fn label(accelerator: &str) -> String {
-    gtk::accelerator_parse(accelerator)
-        .map(|(key, modifiers)| gtk::accelerator_get_label(key, modifiers).to_string())
-        .filter(|label| !label.is_empty())
-        .unwrap_or_else(|| accelerator.to_owned())
 }
 
 fn show(context: &Rc<Context>, state: &Rc<RefCell<HotkeyState>>, widgets: &Rc<KeyWidgets>) {

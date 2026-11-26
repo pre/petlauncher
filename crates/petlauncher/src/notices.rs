@@ -8,6 +8,16 @@ pub enum NoticeKind {
     Warning,
 }
 
+/// A line below the query line.
+#[derive(Debug, PartialEq, Eq)]
+pub struct Notice<'a> {
+    pub kind: NoticeKind,
+    pub text: &'a str,
+    /// The line has a button that opens the Global Key page of the settings
+    /// window.
+    pub opens_key_settings: bool,
+}
+
 /// The texts below the query line: the error of the last action, the
 /// global key that is not set (R4), and the error of a settings file (R18).
 #[derive(Debug, Default)]
@@ -38,14 +48,20 @@ impl Notices {
     }
 
     /// The lines to show, the error of the action first.
-    pub fn lines(&self) -> Vec<(NoticeKind, &str)> {
+    pub fn lines(&self) -> Vec<Notice<'_>> {
         [
-            (NoticeKind::Error, &self.action),
-            (NoticeKind::Warning, &self.global_key),
-            (NoticeKind::Warning, &self.config),
+            (NoticeKind::Error, &self.action, false),
+            (NoticeKind::Warning, &self.global_key, true),
+            (NoticeKind::Warning, &self.config, false),
         ]
         .into_iter()
-        .filter_map(|(kind, text)| text.as_deref().map(|text| (kind, text)))
+        .filter_map(|(kind, text, opens_key_settings)| {
+            text.as_deref().map(|text| Notice {
+                kind,
+                text,
+                opens_key_settings,
+            })
+        })
         .collect()
     }
 }
@@ -71,9 +87,21 @@ mod tests {
         assert_eq!(
             lines,
             [
-                (NoticeKind::Error, "Could not open"),
-                (NoticeKind::Warning, "no global key"),
-                (NoticeKind::Warning, "settings.toml has an error"),
+                Notice {
+                    kind: NoticeKind::Error,
+                    text: "Could not open",
+                    opens_key_settings: false,
+                },
+                Notice {
+                    kind: NoticeKind::Warning,
+                    text: "no global key",
+                    opens_key_settings: true,
+                },
+                Notice {
+                    kind: NoticeKind::Warning,
+                    text: "settings.toml has an error",
+                    opens_key_settings: false,
+                },
             ]
         );
     }

@@ -48,3 +48,8 @@ list.results > row {
 .notice + .notice {
   margin-top: 6px;
 }
+
+/* The gear at the right edge of the query line opens the settings window. */
+.query-bar > button.settings {
+  margin-left: 8px;
+}
