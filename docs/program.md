@@ -2,7 +2,7 @@
 
 The crate `crates/petlauncher` is the program `petlauncher`: the command line, the application on the session bus and the launcher window. It uses GTK 4 and libadwaita. It joins the `Launcher` of `petlauncher-providers` ([launcher.md](launcher.md)) and the GNOME desktop of `petlauncher-gnome` ([gnome-desktop.md](gnome-desktop.md)). This file describes the command line, the window, the global key, the threads, the build and the test. [install.md](install.md) describes the installation.
 
-The settings window is not written yet. The program has a place for it (see "Parts of the program"). The dictionary window: [dictionary-window.md](dictionary-window.md).
+The settings window: [settings-window.md](settings-window.md). The dictionary window: [dictionary-window.md](dictionary-window.md).
 
 ## Build
 
@@ -54,6 +54,7 @@ The launcher is an `AdwApplicationWindow` with the title `petlauncher`. It has n
 | Down | Selects the next row. With no selected row (the contents of a typed directory, R1), Down selects the first row. |
 | Up | Selects the row above. On the first row, Up removes the selection again when the results started with no selected row. Else the first row stays selected. The selection does not wrap at the ends of the list. |
 | Escape | Hides the window. The query is kept (R9). |
+| Ctrl+comma | Hides the window as Escape does, and shows the settings window. |
 | Tab | When Enter on the selected row changes the query, Tab does the same. Thus Tab completes a directory of the path mode. On other rows Tab does nothing. |
 | All other keys | Go to the query line. |
 
@@ -118,7 +119,7 @@ At the start, and at each show until it is done, the program does the first inst
 2. When GNOME has a key for the petlauncher shortcut already, or the setting `hotkey` is empty, the program writes the marker file and changes nothing.
 3. Else it calls `CustomShortcuts::set_global_key_if_free(hotkey, "petlauncher toggle")`. With no conflict, GNOME gets the custom shortcut "Show petlauncher", and the program writes the marker file. With a conflict, the program writes nothing and no marker, and the launcher shows the notice of R4.
 
-The program never changes a different key binding. Only the settings window will remove the key from a conflicting binding, with `CustomShortcuts::remove_key`, after an explicit action of the owner. While the marker file exists, the program does not write the key again, so a key that the owner removed in GNOME Settings stays removed. Delete the file to do the first installation again.
+The program never changes a different key binding. Only the settings window removes the key from a conflicting binding, with `CustomShortcuts::remove_key`, after an explicit action of the owner ([settings-window.md](settings-window.md)). When the owner sets or removes the key in the settings window, the program also writes the marker file and removes the notice. While the marker file exists, the program does not write the key again, so a key that the owner removed in GNOME Settings stays removed. Delete the file to do the first installation again.
 
 ## Actions on the session bus
 
@@ -127,7 +128,7 @@ The GNOME Shell extension uses these actions of the application. [gnome-extensio
 | Action | Function |
 |---|---|
 | `show` | Shows the launcher. When it shows already, it comes to the front, and the query does not change. |
-| `settings` | Shows the settings window. Now this is a window with a short text and the title `petlauncher Settings`. |
+| `settings` | Shows the settings window ([settings-window.md](settings-window.md)). |
 | `quit` | Stops the program. |
 | `tray-icon` | `GnomeDesktop::add_actions` adds it. Disabled. Its boolean state is the setting `show_tray_icon`, and `set_tray_icon_visible` changes it after each change of `settings.toml`. |
 
@@ -143,13 +144,13 @@ The GNOME Shell extension uses these actions of the application. [gnome-extensio
 
 | File | Contents |
 |---|---|
-| `src/backend.rs` | `Backend`: the `Launcher` with the hooks of the program, the search thread, and `GnomeDesktop`. The windows call only its methods: `search`, `activate`, `execute`, `executed`, `window_opened`, `window_closed`, `settings`, `config_notice`, `problems`, `desktop`, `dictionary`, `config_dir`, `state_dir`. |
+| `src/backend.rs` | `Backend`: the `Launcher` with the hooks of the program, the search thread, and `GnomeDesktop`. The windows call only its methods: `search`, `activate`, `execute`, `executed`, `window_opened`, `window_closed`, `settings`, `config_notice`, `problems`, `desktop`, `dictionary`, `config_dir`, `state_dir`, and `launcher` for the settings window. |
 | `src/desktop.rs` | `execute`: an action with `GnomeDesktop::execute`. |
-| `src/global_key.rs` | `install_once`: the first installation of the global key (R4). |
+| `src/global_key.rs` | `install_once`: the first installation of the global key (R4). `record_owner_choice`: the marker file after a change in the settings window. |
 | `src/notices.rs`, `src/model.rs`, `src/selection.rs`, `src/keys.rs`, `src/visibility.rs`, `src/worker.rs` | The rules of the window, with no widgets. |
 | `src/window.rs`, `src/rows.rs`, `src/app.rs` | The widgets and the application. |
 | `src/stop.rs` | "Run in background" off: the stop when no window of the program shows. |
-| `src/settings_window.rs` | A window with a short text. The settings window replaces it. |
+| `src/settings_window/` | The settings window ([settings-window.md](settings-window.md)). |
 | `src/dictionary_window/` | The dictionary window (R19). Its `DictionarySource` is the `Launcher`, so the launcher rows and the window use one open dictionary. |
 
 ## Test
@@ -185,6 +186,10 @@ Environment: GNOME Shell 46.0, GTK 4.14.5, libadwaita 1.5.0, Ubuntu 24.04, relea
 - Position: in the two runs, all 18 shows of the launcher had the position of the rule from the first painted frame, also the first show with the notice of R4 (171 pixels high, 165 at scale 2). The query line had the same place on each monitor for the empty launcher and for a launcher with 8 rows (453 pixels high, 445 at scale 2).
 - "Run in background" off: the dictionary window and the settings window still showed 3 s after the launcher hid, and the process stopped after each window closed. The copied text stayed on the clipboard after the stop.
 - Time from `petlauncher toggle` to the first buffer of the window in GNOME Shell, with the program running: 21 to 37 ms (25 to 36 ms in the owner layout). The first show after the start of the program, which was the first GTK program of a new GNOME Shell: 194 ms (235 ms). A start of the program that shows the launcher: 172 to 178 ms (173 and 580 ms). The command `petlauncher toggle` itself: 18 to 33 ms.
+
+After the change of the example names, `2026-11-26-full-after-rename` (3008x1692 and 1920x1200 at scale 1) ran the same steps: 103 checks, 103 pass, all shows of the launcher at the place of the rule, and 20 to 34 ms from `petlauncher toggle` to the first buffer of a show.
+
+`settings-steps.sh` tests the settings window: [settings-window.md](settings-window.md).
 
 `dictionary-steps.sh` (through `nested-test.sh --steps`, with `PETLAUNCHER_WORDNET_PATH`) ran with the real dictionary rows of the `Launcher`, in `2026-11-26-dictionary-launcher-rows`. The window opened from `d launcher`, its links, history and search worked, it stayed when the launcher showed and hid again, and the extension did not move it on either monitor. The first page took 0.05 ms for the lookup, because the `Launcher` had opened the dictionary for the launcher rows. With missing data the launcher gives only the row "Install the dictionary", so the step reached the page of the missing data through the search field of the window. With "Run in background" off the process ran 3 s after the launcher hid and stopped after the window closed.
 

@@ -25,6 +25,14 @@ it writes a temporary file in the same directory, then renames it. If the
 file is a symbolic link, petlauncher writes the file that the link points to,
 and the link stays.
 
+## The settings window
+
+The settings window ([settings-window.md](settings-window.md)) shows the
+values of the two files and changes them with the same rules: a change
+writes only its value. While a file has an error, the window shows the error
+with the line and does not change the file. When you save a file in an
+editor, the window shows the new values.
+
 ## settings.toml
 
 | Key | Meaning | Initial value |
@@ -33,7 +41,7 @@ and the link stays.
 | `run_in_background` | `true`: petlauncher stays in operation after the window closes, so the window opens quickly. petlauncher also starts at login. | `true` |
 | `show_tray_icon` | `true`: an icon shows in the top bar. | `true` |
 | `include_applications` | `true`: the installed applications are in the search results. | `true` |
-| `hotkey` | The key that shows and hides petlauncher, in the GNOME key syntax. | `"<Super>space"` |
+| `hotkey` | The key that shows and hides petlauncher, in the GNOME key syntax. GNOME keeps the key that is in effect. petlauncher writes this key to GNOME one time, at the first start, when no other key binding has it (ADR 0008). The settings window writes a new key to GNOME and to this setting. | `"<Super>space"` |
 | `window_width` | The width of the window in pixels, from 300 to 7680. | `750` |
 | `keep_query` | How long petlauncher keeps the last query after the window closes: `"disabled"`, `"forever"`, a number of seconds such as `"30s"`, or a number of minutes such as `"5m"`. | `"30s"` |
 
