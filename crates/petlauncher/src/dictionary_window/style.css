@@ -1,0 +1,65 @@
+/* The dictionary window. The colors come from libadwaita, so the window
+   follows the light or dark style of the system (R17). */
+
+.dictionary-page {
+  margin: 28px 24px 48px 24px;
+}
+
+label.dictionary-headword {
+  margin-bottom: 2px;
+}
+
+label.dictionary-note {
+  margin-bottom: 4px;
+}
+
+separator.dictionary-entry-separator {
+  margin: 40px 0 28px 0;
+}
+
+/* The word class above its numbered meanings. */
+label.dictionary-class {
+  font-style: italic;
+  font-weight: 700;
+  font-size: 1.1em;
+  margin: 22px 0 8px 0;
+}
+
+.dictionary-meaning-row {
+  margin-top: 12px;
+}
+
+label.dictionary-class + .dictionary-meaning-row {
+  margin-top: 0;
+}
+
+/* The numbers are a column, so the text of the meanings has one left edge. */
+label.dictionary-number {
+  font-weight: 700;
+  min-width: 22px;
+  margin-right: 12px;
+  font-feature-settings: "tnum";
+}
+
+label.dictionary-meaning {
+  font-size: 1.05em;
+}
+
+/* A page has many links. The color marks them, and an underline on each
+   makes the page busy. */
+label.dictionary-meaning > link,
+label.dictionary-nearest > link {
+  text-decoration-line: none;
+}
+
+label.dictionary-nearest {
+  font-size: 1.15em;
+}
+
+.dictionary-suggestions {
+  margin: 18px 12px;
+}
+
+row.dictionary-suggestion {
+  padding: 10px 14px;
+}

@@ -11,6 +11,7 @@ use petlauncher_config::{ConfigFile, ConfigWatcher, Reload};
 
 use crate::backend::Backend;
 use crate::cli::{self, Command};
+use crate::dictionary_window::{self, WordNet};
 use crate::log;
 use crate::settings_window;
 use crate::window::LauncherWindow;
@@ -59,6 +60,13 @@ impl Program {
         let backend = Rc::new(backend);
         let settings = backend.settings();
         let launcher = LauncherWindow::new(app, Rc::clone(&backend), results);
+        let (paths, background) = (Rc::clone(&backend), Rc::clone(&backend));
+        let wordnet = WordNet::new(glib::home_dir(), move || {
+            paths.settings().dictionary.wordnet_path
+        });
+        dictionary_window::install(app, Rc::new(wordnet), move || {
+            background.settings().run_in_background
+        });
 
         // The extension reads the state and shows the icon when it is
         // true. Nobody can activate the action.
