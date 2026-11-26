@@ -1,0 +1,18 @@
+[package]
+name = "petlauncher-index"
+description = "File index of petlauncher: scan, ignore rules, search by file name"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+crc32fast = "1.5"
+globset = "0.4.22"
+ignore = "0.4.35"
+memchr = "2.8"
+tempfile = "3.27"
+
+[[bench]]
+name = "search"
+harness = false
