@@ -65,7 +65,12 @@ if [[ "${1:-}" != --inner ]]; then
         cp -r "$here/../$uuid" "$root/home/.local/share/gnome-shell/extensions/"
         printf "[org/gnome/shell]\nenabled-extensions=['%s']\n" "$uuid" >>"$keyfile"
     fi
-    [[ -n $program ]] && "$here/program-files.sh" "$root/home"
+    if [[ -n $program ]]; then
+        # The steps of program-steps.sh begin with the R4 conflict.
+        conflict=""
+        [[ $steps == "$here/program-steps.sh" ]] && conflict=--key-conflict
+        "$here/program-files.sh" "$root/home" ${conflict:+"$conflict"}
+    fi
     # A fake system bus: the test shell must not reach logind, UPower or
     # NetworkManager of the real system.
     system_bus_pid=$(dbus-daemon --session --address="unix:path=$root/run/system_bus" \
@@ -79,7 +84,7 @@ if [[ "${1:-}" != --inner ]]; then
         OUT="$out" MONITORS="$monitors" LAYOUT="$layout" EXTENSION="$extension" \
         PROGRAM="$program" STEPS="$steps" \
         PETLAUNCHER_WORDNET_PATH="${PETLAUNCHER_WORDNET_PATH:-}" \
-        timeout 600 dbus-run-session -- "${BASH_SOURCE[0]}" --inner 2>"$out/bus.log" || status=$?
+        timeout 1200 dbus-run-session -- "${BASH_SOURCE[0]}" --inner 2>"$out/bus.log" || status=$?
     kill "$system_bus_pid" 2>/dev/null || true
     # Services of the private bus can still write for a moment after it stops.
     for _ in 1 2 3 4 5; do
@@ -192,6 +197,7 @@ finish_test() {
     grep -E "JS ERROR|JS WARNING|$uuid" "$OUT/shell.log" >"$OUT/shell-js-errors.txt" || true
     "$here/analyse.sh" "$OUT" | tee "$OUT/summary.txt"
     if [[ -n $PROGRAM ]]; then
+        cp "$HOME/launches.log" "$OUT/launches.log" 2>/dev/null || true
         "$here/analyse-program.sh" "$OUT" | tee -a "$OUT/summary.txt"
     fi
 }

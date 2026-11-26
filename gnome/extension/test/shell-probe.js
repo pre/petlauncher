@@ -202,6 +202,11 @@ function type(text) {
         pressAndRelease([Clutter.unicode_to_keysym(character.codePointAt(0))]);
 }
 
+// Puts the text on the clipboard, for a paste with Control+V.
+function setClipboard(text) {
+    St.Clipboard.get_default().set_text(St.ClipboardType.CLIPBOARD, text);
+}
+
 // Starts to read the text of the clipboard. clipboard() gives it later.
 function readClipboard() {
     clipboardText = null;
@@ -310,6 +315,7 @@ export function init() {
         prepareKeyboard,
         keys,
         type,
+        setClipboard,
         readClipboard,
         clipboard: () => clipboardText,
         screenshot,

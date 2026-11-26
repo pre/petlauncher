@@ -1,24 +1,33 @@
-# shellcheck shell=bash disable=SC2088,SC2154
-# SC2088: each ~ is text that the test types. SC2154: nested-test.sh sets
-# here, uuid and the other variables.
+# shellcheck shell=bash disable=SC2034,SC2088,SC2154
+# SC2034: acceptance-steps.sh uses some variables. SC2088: each ~ is text
+# that the test types. SC2154: nested-test.sh sets here, uuid and the other
+# variables.
 # The steps of `nested-test.sh --program PATH`: the real petlauncher binary
-# with the real extension. nested-test.sh sources this file in its inner
-# part, so the functions of that part are available. analyse-program.sh
-# reads the evidence.
+# with the real extension, the recording mock services of mock-services.js
+# and the fixtures of program-files.sh. nested-test.sh sources this file in
+# its inner part, so the functions of that part are available. This file
+# sources acceptance-steps.sh. analyse-program.sh reads the evidence.
 #
 # Evidence that this file adds to OUT:
-#   app-program.log   the log of the program, with a line "== NAME" before
-#                     each step that gives an action at the seam
-#   toggle-times.txt  the time of each `petlauncher toggle`, in microseconds
-#   checks.txt        the names of the states that are not a show
-#   clipboard-*.txt   the text on the clipboard, read in the shell
-#   commands.txt      the exit status and time of the other commands
+#   app-program.log    the log of the program, with a line "== NAME" before
+#                      each step that gives an action
+#   mock-calls.jsonl   each call that reached a mock service
+#   launches.log       each start of a fixture application, with arguments
+#   acceptance.tsv     the result of each check of a requirement step
+#   keyfile-*.ini      the GSettings key file of the test at some steps
+#   toggle-times.txt   the time of each `petlauncher toggle`, in microseconds
+#   checks.txt         the names of the states that are not a show
+#   clipboard-*.txt    the text on the clipboard, read in the shell
+#   commands.txt       the exit status and time of the other commands
 
 app=pet.repo.Petlauncher
 config=$HOME/.config/petlauncher
 collapsed=$(sed -nE 's/^export const COLLAPSED_HEIGHT = ([0-9]+);/\1/p' "$here/../$uuid/launcher.js")
 program_log=$OUT/app-program.log
+log_file="app-program.log"
 export PETLAUNCHER_DEBUG=1
+# The test has no network: the program uses only the stored rates.
+export PETLAUNCHER_OFFLINE=1
 
 wait_name_owned() {
     for _ in $(seq 100); do
@@ -90,11 +99,12 @@ shot() {
     sleep 0.5
 }
 
-# Changes one key of settings.toml as an editor does: a new file and a
-# rename. The program reads the file again after 0.1 s.
+# Changes one top-level key of settings.toml as an editor does: a new file
+# and a rename. The key goes to the first line, before each table. The
+# program reads the file again after 0.1 s.
 set_setting() { # key value
     local file=$config/settings.toml
-    { grep -v "^$1 = " "$file" || true; echo "$1 = $2"; } >"$file.new"
+    { echo "$1 = $2"; grep -v "^$1 = " "$file" || true; } >"$file.new"
     mv "$file.new" "$file"
     sleep 0.7
 }
@@ -104,6 +114,97 @@ read_clipboard() { # name
     sleep 0.5
     shell_eval 'petProbe.clipboard()' | jq -r '. // "(no text)"' >"$OUT/clipboard-$1.txt"
 }
+
+mocks=$OUT/mock-calls.jsonl
+launches=$HOME/launches.log
+acceptance=$OUT/acceptance.tsv
+touch "$mocks" "$launches"
+home_uri="file://$HOME"
+
+# Starts a requirement step: the evidence after this point belongs to it.
+begin() {
+    step=$1
+    mark "$step"
+    mock_count=$(wc -l <"$mocks")
+    launch_count=$(wc -l <"$launches")
+    log_count=$(wc -l <"$program_log")
+}
+
+new_mocks() { tail -n +"$((mock_count + 1))" "$mocks"; }
+new_launches() { tail -n +"$((launch_count + 1))" "$launches"; }
+new_log() { tail -n +"$((log_count + 1))" "$program_log"; }
+
+# description, evidence file, then a command that succeeds for PASS.
+expect() {
+    local description=$1 evidence=$2 result=FAIL
+    shift 2
+    "$@" >/dev/null 2>&1 && result=PASS
+    printf '%s\t%s\t%s\t%s\n' "$step" "$result" "$description" "$evidence" >>"$acceptance"
+}
+
+mock_call() { # method, text in the arguments
+    new_mocks | grep -F "\"method\":\"$1\"" | grep -qF -- "$2"
+}
+no_mock_call() { [[ -z $(new_mocks) ]]; }
+launched() { # text of the launch record; waits up to 3 s for the start
+    for _ in $(seq 30); do
+        new_launches | grep -qF -- "$1" && return 0
+        sleep 0.1
+    done
+    return 1
+}
+no_launch() { [[ -z $(new_launches) ]]; }
+logged() { new_log | grep -qF -- "$1"; }
+last_rows() { new_log | grep -F ": rows for " | tail -1; }
+rows_have() { last_rows | grep -qF -- "$1"; }
+# The titles of the last row list, with no query text.
+last_titles() { last_rows | sed -E 's/.*, selected (None|Some\([0-9]+\)): //'; }
+rows_lack() { ! last_titles | grep -qF -- "$1"; }
+launcher_visible() {
+    shell_eval 'petProbe.state()' | jq -e 'any(.windows[]; .title == "petlauncher")'
+}
+launcher_hidden() { ! launcher_visible; }
+clipboard_text() {
+    shell_eval 'petProbe.readClipboard()' >/dev/null
+    sleep 0.4
+    shell_eval 'petProbe.clipboard()' | jq -r '. // ""'
+}
+clipboard_is() { [[ $(clipboard_text) == "$1" ]]; }
+keyfile() { /usr/bin/cat "$HOME/.config/glib-2.0/settings/keyfile"; }
+keyfile_has() { keyfile | grep -qF -- "$1"; }
+
+# Shows the launcher on monitor 0 with an empty query line.
+open_launcher() {
+    if launcher_visible; then
+        "$PROGRAM" toggle >>"$program_log" 2>&1
+        sleep 0.5
+    fi
+    pointer_to_monitor 0
+    sleep 0.2
+    "$PROGRAM" toggle >>"$program_log" 2>&1
+    sleep 1
+    keys Control_L+a BackSpace
+}
+
+query() { # text, typed into an empty query line
+    open_launcher
+    type_text "$1"
+}
+
+paste() { # text, pasted into an empty query line
+    open_launcher
+    shell_eval "petProbe.setClipboard($(jq -cn --arg text "$1" '$text'))" >/dev/null
+    sleep 0.3
+    keys Control_L+v
+    sleep 0.8
+}
+
+hide_launcher() {
+    if launcher_visible; then
+        keys Escape
+    fi
+}
+
 
 center_of_tray_item() { # state file, label or empty for the icon
     if [[ -z $2 ]]; then
@@ -121,18 +222,68 @@ center_of_tray_item() { # state file, label or empty for the icon
 "$PROGRAM" --version >>"$OUT/versions.txt"
 echo "GTK $(pkg-config --modversion gtk4), libadwaita $(pkg-config --modversion libadwaita-1)" >>"$OUT/versions.txt"
 shell_eval 'petProbe.prepareKeyboard()' >/dev/null
-sleep 1
+: >"$acceptance"
+
+# The mock services own their names before the program starts.
+for bus in session system; do
+    gjs -m "$here/mock-services.js" --bus "$bus" --out "$mocks" >"$OUT/mock-$bus.log" 2>&1 &
+    app_pids+=($!)
+done
+for _ in $(seq 50); do
+    grep -q ready "$OUT/mock-session.log" && grep -q ready "$OUT/mock-system.log" && break
+    sleep 0.1
+done
+cat "$OUT/mock-session.log" "$OUT/mock-system.log" >>"$OUT/commands.txt"
+
+# R4 writes GNOME settings. Before the first start, prove that the default
+# GSettings backend of this environment is the key file of the test, not
+# dconf of the user.
+backend=$(gjs -c "imports.gi.versions.Gio = '2.0'; const Gio = imports.gi.Gio;
+    const backend = Gio.SettingsBackend.get_default();
+    print(backend.constructor.\$gtype.name + ' ' + backend.filename);")
+echo "GSettings backend before the start: $backend" >>"$OUT/commands.txt"
+if [[ $backend != "GKeyfileSettingsBackend $HOME/"* ]]; then
+    echo "the GSettings backend is not the key file of the test: $backend" >&2
+    exit 1
+fi
+keyfile >"$OUT/keyfile-before.ini"
 
 # Start at login: no window. The tray icon shows.
+begin R4-conflict
 start_program --hidden
 sleep 1
 check app-started
+expect "a conflict writes nothing" "$log_file" logged "the global key <Super>space is not set"
+expect "the other custom shortcut keeps its key" keyfile-after-start.ini \
+    keyfile_has "binding='<Super>space'"
+expect "no petlauncher shortcut" keyfile-after-start.ini \
+    eval '! keyfile_has custom-keybindings/petlauncher'
+expect "no marker file" state eval "[[ ! -e \$HOME/.local/state/petlauncher/global-key-installed ]]"
+keyfile >"$OUT/keyfile-after-start.ini"
 
-# R11: the first show of the process, with no rows, on monitor 1, then a
-# show on monitor 0.
+# R11: the first show of the process on monitor 1, with the notice of R4.
 toggle_step launcher-first-m1 1
 shot launcher-first-m1
+expect "the launcher shows the notice of the conflict" launcher-first-m1.png \
+    logged "Show Scratch Notes"
 hide_with_toggle launcher-first-m1
+
+# The owner removes the key from the two bindings in GNOME Settings. The
+# next show writes the key of petlauncher.
+gsettings set org.gnome.desktop.wm.keybindings switch-input-source "['XF86Keyboard']"
+gsettings set org.gnome.settings-daemon.plugins.media-keys.custom-keybinding:/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/scratch-notes/ binding ''
+begin R4-installed
+toggle_step launcher-empty-m1 1
+shot launcher-empty-m1
+keyfile >"$OUT/keyfile-after-install.ini"
+expect "the key is written at the next show" "$log_file" \
+    logged "the global key <Super>space runs \"petlauncher toggle\""
+expect "the petlauncher shortcut has the key" keyfile-after-install.ini \
+    keyfile_has "[org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/petlauncher]"
+expect "the marker file exists" state test -e "$HOME/.local/state/petlauncher/global-key-installed"
+expect "the autostart file starts the program hidden" state \
+    grep -q -- "--hidden" "$HOME/.config/autostart/pet.repo.Petlauncher.desktop"
+hide_with_toggle launcher-empty-m1
 toggle_step launcher-empty-m0 0
 shot launcher-empty-m0
 
@@ -288,8 +439,13 @@ fi
 sleep 0.5
 check tray-after-quit
 
+# The owner removes the key of petlauncher in GNOME Settings. The next
+# start does not write it again (R4, the marker file).
+gsettings set org.gnome.settings-daemon.plugins.media-keys.custom-keybinding:/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/petlauncher/ binding ''
+
 # R4: `petlauncher toggle` with no running program starts it and shows the
 # launcher. This process stays as the program.
+begin R4-not-again
 pointer_to_monitor 1
 sleep 0.2
 t=$(now)
@@ -298,6 +454,17 @@ app_pids+=($!)
 sleep 2.5
 snapshot launcher-cold-toggle-m1 "$t"
 echo launcher-cold-toggle-m1 >>"$OUT/steps.txt"
+keyfile >"$OUT/keyfile-after-restart.ini"
+expect "a key that the owner removed is not written again" "$log_file" \
+    logged "the first installation of the global key is done already"
+expect "the petlauncher shortcut has no key" keyfile-after-restart.ini \
+    eval '! keyfile_has "binding='"'"'<Super>space'"'"'"'
+keys Escape
+
+# The acceptance steps of the requirements, with this program.
+# shellcheck source=acceptance-steps.sh
+source "$here/acceptance-steps.sh"
+
 app_action $app quit
 wait_name_gone $app
 
