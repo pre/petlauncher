@@ -56,6 +56,8 @@ pub struct LauncherWindow {
     notices: RefCell<Notices>,
     /// Runs at the start of each show, before the window is visible.
     before_show: RefCell<Option<Box<dyn Fn()>>>,
+    /// Runs after each hide, after the record of the close.
+    after_hide: RefCell<Option<Box<dyn Fn()>>>,
 }
 
 impl LauncherWindow {
@@ -155,6 +157,7 @@ impl LauncherWindow {
             select_at_focus: Cell::new(false),
             notices: RefCell::new(Notices::default()),
             before_show: RefCell::new(None),
+            after_hide: RefCell::new(None),
         });
         this.set_width(this.backend.settings().window_width);
         this.connect_signals();
@@ -247,6 +250,11 @@ impl LauncherWindow {
         self.before_show.replace(Some(Box::new(hook)));
     }
 
+    /// Runs `hook` after each hide, after the record of the close.
+    pub fn set_after_hide(&self, hook: impl Fn() + 'static) {
+        self.after_hide.replace(Some(Box::new(hook)));
+    }
+
     /// R4: the notice that the global key is not set, or `None`.
     pub fn set_global_key_notice(&self, text: Option<String>) {
         self.notices.borrow_mut().set_global_key(text);
@@ -315,6 +323,9 @@ impl LauncherWindow {
         }
         log::debug(format_args!("hide, {reason:?}"));
         self.window.set_visible(false);
+        if let Some(hook) = self.after_hide.borrow().as_ref() {
+            hook();
+        }
         if !self.backend.settings().run_in_background {
             if let Some(app) = self.window.application() {
                 stop::stop_when_no_window_shows(&app);

@@ -105,6 +105,12 @@ impl Program {
             }
         });
         let weak = Rc::downgrade(&program);
+        program.launcher.set_after_hide(move || {
+            if let Some(program) = weak.upgrade() {
+                program.publish_kept_query();
+            }
+        });
+        let weak = Rc::downgrade(&program);
         glib::spawn_future_local(async move {
             while let Ok(update) = updates.recv().await {
                 match weak.upgrade() {
@@ -186,6 +192,7 @@ impl Program {
         log::debug(format_args!("update {update:?}"));
         if let Update::Config(_) = update {
             self.apply_settings();
+            self.publish_kept_query();
             if let Some(window) = self.settings_window.borrow().as_ref() {
                 window.reload();
             }
@@ -224,6 +231,18 @@ impl Program {
             log::info(notice);
         }
         self.launcher.set_config_notice(notice);
+    }
+
+    /// ADR 0009: tells the extension until when the next show has the kept
+    /// query, after each hide and each change of the settings. Not at a
+    /// show: the extension reads the state when the window maps, and D-Bus
+    /// can send a change of the state after the map.
+    fn publish_kept_query(&self) {
+        let until = self.backend.kept_query_until();
+        log::debug(format_args!("kept query until {until:?}"));
+        if let Ok(desktop) = self.backend.desktop() {
+            desktop.set_kept_query_until(until);
+        }
     }
 
     /// R4: the first installation of the global key, at the start and at

@@ -11,7 +11,7 @@ use std::sync::Arc;
 
 use petlauncher_calc::RatesError;
 use petlauncher_config::{ConfigFile, Settings};
-use petlauncher_core::{Action, CloseReason, DesktopError, Key, Outcome, Results};
+use petlauncher_core::{Action, CloseReason, DesktopError, KeptUntil, Key, Outcome, Results};
 use petlauncher_dict::{Entry, Error as DictionaryError};
 use petlauncher_gnome::GnomeDesktop;
 use petlauncher_providers::{Autostart, Dirs, Hooks, Launcher, Update};
@@ -148,6 +148,11 @@ impl Backend {
     /// key. `executed` records a close after a key.
     pub fn window_closed(&self, query: &str, reason: CloseReason) {
         self.launcher.window_closed(query, reason);
+    }
+
+    /// Until when the next show has the kept query (R9).
+    pub fn kept_query_until(&self) -> KeptUntil {
+        self.launcher.kept_query_until()
     }
 
     /// R18: the error of a settings file, whose old values stay in effect.

@@ -7,6 +7,8 @@ import {
     LAUNCHER_TITLE,
     launcherPosition,
     isLauncher,
+    movedPosition,
+    queryKept,
     trayIconVisible,
 } from '../petlauncher@repo.pet/launcher.js';
 
@@ -121,6 +123,47 @@ test('shows the tray icon only when the action state is true', () => {
     const visible = states.map(state => trayIconVisible(state));
 
     assertEqual(visible, [true, false, false]);
+});
+
+const WORK_AREAS = [
+    {x: 0, y: 32, width: 3008, height: 1660},
+    {x: 3008, y: 234, width: 1920, height: 1200},
+];
+
+test('a query is kept until the time of the state, or with no limit for -1', () => {
+    const now = 1795722113580300;
+    const states = [now + 1, now, now - 1, -1, 0, null];
+
+    const kept = states.map(state => queryKept(state, now));
+
+    assertEqual(kept, [true, false, false, true, false, false]);
+});
+
+test('opens a moved launcher at its place on each monitor', () => {
+    const size = {width: 750, height: 300};
+
+    const first = movedPosition({x: 100, y: 200}, size, WORK_AREAS);
+    const second = movedPosition({x: 3100, y: 300}, size, WORK_AREAS);
+
+    assertEqual([first, second], [{x: 100, y: 200}, {x: 3100, y: 300}]);
+});
+
+test('forgets a moved place whose query line is not in a work area', () => {
+    const size = {width: 750, height: COLLAPSED_HEIGHT};
+
+    const goneMonitor = movedPosition({x: 5000, y: 300}, size, WORK_AREAS);
+    const onTwoMonitors = movedPosition({x: 2500, y: 300}, size, WORK_AREAS);
+    const underTopBar = movedPosition({x: 100, y: 10}, size, WORK_AREAS);
+
+    assertEqual([goneMonitor, onTwoMonitors, underTopBar], [null, null, null]);
+});
+
+test('moves a moved launcher up when its rows go below the work area', () => {
+    const size = {width: 750, height: 500};
+
+    const position = movedPosition({x: 100, y: 1500}, size, WORK_AREAS);
+
+    assertEqual(position, {x: 100, y: 1192});
 });
 
 if (failures.length > 0) {

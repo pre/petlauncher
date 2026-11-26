@@ -6,8 +6,10 @@ mod support;
 use std::path::Path;
 
 use gio::prelude::*;
-use petlauncher_core::{Action, Desktop, DesktopError, FolderOpened, SystemCommand};
-use petlauncher_gnome::{Executed, GnomeDesktop, TRAY_ICON_ACTION};
+use std::time::{Duration, SystemTime};
+
+use petlauncher_core::{Action, Desktop, DesktopError, FolderOpened, KeptUntil, SystemCommand};
+use petlauncher_gnome::{Executed, GnomeDesktop, KEPT_QUERY_ACTION, TRAY_ICON_ACTION};
 use support::{MockService, PrivateBus, Reply};
 
 fn desktop(session: &PrivateBus, system: &PrivateBus) -> GnomeDesktop {
@@ -248,6 +250,33 @@ fn the_tray_icon_action_is_disabled_and_follows_set_tray_icon_visible() {
     assert_eq!(before, Some(false.to_variant()));
     assert_eq!(after, Some(true.to_variant()));
     assert!(!actions.is_action_enabled(TRAY_ICON_ACTION));
+}
+
+/// ADR 0009: the wall-clock time in microseconds, 0 for no kept query and
+/// -1 for a query that is kept with no time limit.
+#[test]
+fn the_kept_query_action_is_disabled_and_gives_the_time_in_microseconds() {
+    let (session, system) = (PrivateBus::start(), PrivateBus::start());
+    let desktop = desktop(&session, &system);
+    let actions = gio::SimpleActionGroup::new();
+    desktop.add_actions(&actions);
+    let state = |until| {
+        desktop.set_kept_query_until(until);
+        actions.action_state(KEPT_QUERY_ACTION)
+    };
+
+    let start = actions.action_state(KEPT_QUERY_ACTION);
+    let time = state(KeptUntil::Time(
+        SystemTime::UNIX_EPOCH + Duration::from_micros(1_795_722_113_580_300),
+    ));
+    let forever = state(KeptUntil::Forever);
+    let nothing = state(KeptUntil::Nothing);
+
+    assert_eq!(start, Some(0i64.to_variant()));
+    assert_eq!(time, Some(1_795_722_113_580_300i64.to_variant()));
+    assert_eq!(forever, Some((-1i64).to_variant()));
+    assert_eq!(nothing, Some(0i64.to_variant()));
+    assert!(!actions.is_action_enabled(KEPT_QUERY_ACTION));
 }
 
 /// The extension reads the state with `org.gtk.Actions` (ADR 0005).

@@ -23,7 +23,9 @@ pub use contract::{
 };
 pub use desktop::{Desktop, DesktopError, FolderOpened};
 pub use engine::Engine;
-pub use kept_query::{keep_query_warning, Clock, CloseReason, KeptQuery, ManualClock, SystemClock};
+pub use kept_query::{
+    keep_query_warning, Clock, CloseReason, KeptQuery, KeptUntil, ManualClock, SystemClock,
+};
 pub use keys::activate;
 pub use matching::match_rank;
 pub use petlauncher_config as config;

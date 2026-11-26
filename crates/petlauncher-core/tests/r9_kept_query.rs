@@ -8,7 +8,8 @@ use std::time::{Duration, SystemTime};
 use common::{fake_applications, fake_calculator, search, TempHome};
 use petlauncher_core::config::{KeepQuery, Settings};
 use petlauncher_core::{
-    activate, keep_query_warning, Clock, CloseReason, Engine, KeptQuery, Key, ManualClock, Slot,
+    activate, keep_query_warning, Clock, CloseReason, Engine, KeptQuery, KeptUntil, Key,
+    ManualClock, Slot,
 };
 
 const SUM: &str = "42.3+68.7+14.1+0.5";
@@ -213,4 +214,52 @@ fn r9_a_wall_clock_that_goes_back_does_not_clear_the_query() {
     let restored = kept.window_opened(&settings);
 
     assert_eq!(restored.as_deref(), Some(SUM));
+}
+
+fn kept_until(launcher: &Launcher) -> KeptUntil {
+    launcher.kept.kept_until(&launcher.settings)
+}
+
+#[test]
+fn r9_kept_until_gives_the_end_of_the_keep_time_after_a_close() {
+    let mut launcher = Launcher::new();
+    launcher.clock.advance(Duration::from_secs(100));
+
+    launcher.close(SUM, CloseReason::Escape);
+
+    assert_eq!(
+        kept_until(&launcher),
+        KeptUntil::Time(SystemTime::UNIX_EPOCH + Duration::from_secs(130))
+    );
+}
+
+#[test]
+fn r9_kept_until_is_nothing_with_no_kept_query_and_after_the_open() {
+    let mut launcher = Launcher::new();
+    assert_eq!(kept_until(&launcher), KeptUntil::Nothing);
+
+    launcher.close("", CloseReason::Escape);
+    assert_eq!(kept_until(&launcher), KeptUntil::Nothing);
+
+    launcher.close(SUM, CloseReason::Escape);
+    launcher.open_after(1);
+    assert_eq!(kept_until(&launcher), KeptUntil::Nothing);
+}
+
+#[test]
+fn r9_kept_until_follows_the_settings_of_now() {
+    let mut launcher = Launcher::new();
+    launcher.close(SUM, CloseReason::Escape);
+
+    launcher.settings.keep_query = KeepQuery::Forever;
+    let forever = kept_until(&launcher);
+    launcher.settings.keep_query = KeepQuery::Disabled;
+    let disabled = kept_until(&launcher);
+    launcher.settings.keep_query = KeepQuery::Seconds(30);
+    launcher.settings.run_in_background = false;
+    let no_background = kept_until(&launcher);
+
+    assert_eq!(forever, KeptUntil::Forever);
+    assert_eq!(disabled, KeptUntil::Nothing);
+    assert_eq!(no_background, KeptUntil::Nothing);
 }

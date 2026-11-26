@@ -16,8 +16,8 @@ use petlauncher_config::{
     Settings, SettingsEditor, Shortcut, ShortcutsEditor,
 };
 use petlauncher_core::{
-    Action, CancelToken, Clock, CloseReason, Engine, KeptQuery, Key, Outcome, Results, Slot,
-    SystemClock,
+    Action, CancelToken, Clock, CloseReason, Engine, KeptQuery, KeptUntil, Key, Outcome, Results,
+    Slot, SystemClock,
 };
 use petlauncher_dict::{Entry, Error as DictionaryError};
 use petlauncher_index::{FileIndex, ScopeError};
@@ -406,6 +406,12 @@ impl Launcher {
     pub fn window_closed(&self, query: &str, reason: CloseReason) {
         let settings = self.settings();
         lock(&self.shared.kept).window_closed(query, reason, &settings);
+    }
+
+    /// Until when the next open of the window has the kept query (R9),
+    /// with the settings in effect.
+    pub fn kept_query_until(&self) -> KeptUntil {
+        lock(&self.shared.kept).kept_until(&self.settings())
     }
 
     /// The settings in effect.

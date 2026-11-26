@@ -2,10 +2,11 @@
 
 use std::cell::{OnceCell, RefCell};
 use std::path::Path;
+use std::time::UNIX_EPOCH;
 
 use gio::prelude::*;
 use glib::variant::ToVariant;
-use petlauncher_core::{Action, Desktop, DesktopError, FolderOpened, SystemCommand};
+use petlauncher_core::{Action, Desktop, DesktopError, FolderOpened, KeptUntil, SystemCommand};
 
 use crate::file_manager;
 use crate::launch::{self, Executed};
@@ -16,15 +17,20 @@ use crate::shortcuts::CustomShortcuts;
 /// GNOME Shell extension reads it on D-Bus (ADR 0005).
 pub const TRAY_ICON_ACTION: &str = "tray-icon";
 
+/// The name of the action whose state tells the GNOME Shell extension until
+/// when the next show of the launcher has the kept query of R9 (ADR 0009).
+pub const KEPT_QUERY_ACTION: &str = "kept-query-until";
+
 /// The GNOME desktop: the session bus, the system bus, the custom shortcuts
-/// in GSettings, and the action that the top bar icon of the extension
-/// reads. Make it on the thread of the user interface.
+/// in GSettings, and the actions that the extension reads. Make it on the
+/// thread of the user interface.
 pub struct GnomeDesktop {
     session_bus: gio::DBusConnection,
     system_bus: OnceCell<gio::DBusConnection>,
     shortcuts: Result<CustomShortcuts, DesktopError>,
     launch_context: RefCell<Option<gio::AppLaunchContext>>,
     tray_icon: gio::SimpleAction,
+    kept_query: gio::SimpleAction,
 }
 
 impl GnomeDesktop {
@@ -50,12 +56,16 @@ impl GnomeDesktop {
         let tray_icon =
             gio::SimpleAction::new_stateful(TRAY_ICON_ACTION, None, &false.to_variant());
         tray_icon.set_enabled(false);
+        let kept_query =
+            gio::SimpleAction::new_stateful(KEPT_QUERY_ACTION, None, &0i64.to_variant());
+        kept_query.set_enabled(false);
         Self {
             session_bus,
             system_bus: system_bus.map(OnceCell::from).unwrap_or_default(),
             shortcuts,
             launch_context: RefCell::new(None),
             tray_icon,
+            kept_query,
         }
     }
 
@@ -73,11 +83,28 @@ impl GnomeDesktop {
         self.shortcuts.as_ref().map_err(Clone::clone)
     }
 
-    /// Adds the action `tray-icon` to the application, so that the GNOME
-    /// Shell extension can read it. `set_tray_icon_visible` changes its
-    /// state. Call it one time, for example in the `startup` signal.
+    /// Adds the actions `tray-icon` and `kept-query-until` to the
+    /// application, so that the GNOME Shell extension can read them.
+    /// `set_tray_icon_visible` and `set_kept_query_until` change their
+    /// states. Call it one time, for example in the `startup` signal.
     pub fn add_actions(&self, actions: &impl IsA<gio::ActionMap>) {
         actions.add_action(&self.tray_icon);
+        actions.add_action(&self.kept_query);
+    }
+
+    /// The state of `kept-query-until`: the wall-clock time in microseconds
+    /// since 1970, 0 for no kept query, and -1 for no time limit. Set it
+    /// after a hide of the launcher, not at a show: D-Bus sends the change
+    /// later, and the extension reads the state when the window maps.
+    pub fn set_kept_query_until(&self, until: KeptUntil) {
+        let micros = match until {
+            KeptUntil::Nothing => 0,
+            KeptUntil::Forever => -1,
+            KeptUntil::Time(time) => time
+                .duration_since(UNIX_EPOCH)
+                .map_or(0, |since| i64::try_from(since.as_micros()).unwrap_or(-1)),
+        };
+        self.kept_query.set_state(&micros.to_variant());
     }
 
     /// Executes the parts of `action` that need no GTK. See `execute`.

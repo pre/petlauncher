@@ -12,7 +12,7 @@ mod shortcuts;
 
 pub use accelerator::{validate_accelerator, AcceleratorError};
 pub use bindings::{BindingKind, Conflict, CUSTOM_SECTION, SHORTCUTS_PAGE};
-pub use desktop::{GnomeDesktop, TRAY_ICON_ACTION};
+pub use desktop::{GnomeDesktop, KEPT_QUERY_ACTION, TRAY_ICON_ACTION};
 pub use launch::{execute, Executed};
 /// R16: the rule that finds the pages of GNOME Settings. Give it to
 /// `petlauncher_apps::Applications::load`.

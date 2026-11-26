@@ -71,6 +71,17 @@ impl CloseReason {
     }
 }
 
+/// Until when the next open of the window has the kept query.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum KeptUntil {
+    /// The next open has an empty query line.
+    Nothing,
+    /// An open before this time has the kept query.
+    Time(SystemTime),
+    /// The next open has the kept query, at each time.
+    Forever,
+}
+
 /// The state of the kept query. Call `window_closed` when the window closes
 /// and `window_opened` when it opens.
 pub struct KeptQuery {
@@ -110,6 +121,24 @@ impl KeptQuery {
             KeepQuery::Seconds(seconds) => elapsed < Duration::from_secs(seconds),
         };
         still_kept.then_some(query)
+    }
+
+    /// Until when an open with the settings of now gives the kept query.
+    /// After `window_opened` it is `Nothing`, until the next close.
+    pub fn kept_until(&self, settings: &Settings) -> KeptUntil {
+        let Some((_, closed_at)) = &self.kept else {
+            return KeptUntil::Nothing;
+        };
+        if !settings.run_in_background {
+            return KeptUntil::Nothing;
+        }
+        match settings.keep_query {
+            KeepQuery::Disabled => KeptUntil::Nothing,
+            KeepQuery::Forever => KeptUntil::Forever,
+            KeepQuery::Seconds(seconds) => {
+                KeptUntil::Time(*closed_at + Duration::from_secs(seconds))
+            }
+        }
     }
 }
 

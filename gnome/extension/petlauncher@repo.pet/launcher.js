@@ -11,6 +11,7 @@ export const Action = Object.freeze({
     SETTINGS: 'settings',
     QUIT: 'quit',
     TRAY_ICON: 'tray-icon',
+    KEPT_QUERY_UNTIL: 'kept-query-until',
 });
 
 /**
@@ -48,6 +49,49 @@ export function launcherPosition(size, workArea) {
         x: workArea.x + Math.max(0, Math.floor((workArea.width - size.width) / 2)),
         y: Math.min(top, lowestTop),
     };
+}
+
+/**
+ * ADR 0009: the state of the action `kept-query-until` tells until when a
+ * show of the launcher has the kept query of R9.
+ *
+ * @param {number|null} state - the wall-clock time in microseconds since
+ *   1970, 0 for no kept query, -1 for no time limit, or null when the
+ *   program does not have the action
+ * @param {number} now - the wall-clock time in microseconds, for example
+ *   `GLib.get_real_time()`
+ * @returns {boolean} true when the launcher that maps now has the kept query
+ */
+export function queryKept(state, now) {
+    return state === -1 || (typeof state === 'number' && state > now);
+}
+
+function contains(area, rect) {
+    return rect.x >= area.x && rect.y >= area.y &&
+        rect.x + rect.width <= area.x + area.width &&
+        rect.y + rect.height <= area.y + area.height;
+}
+
+/**
+ * The top left corner of the launcher frame at the place where the owner
+ * moved it. A launcher that goes below the work area moves up, as in
+ * `launcherPosition`.
+ *
+ * @param {{x: number, y: number}} moved - the top left corner of the frame
+ *   after the move of the owner
+ * @param {{width: number, height: number}} size - the frame size of the window
+ * @param {Array<{x: number, y: number, width: number, height: number}>}
+ *   workAreas - the monitors without the top bar
+ * @returns {{x: number, y: number}|null} null when the query line at that
+ *   place is not fully in one work area, for example after a monitor change
+ */
+export function movedPosition(moved, size, workAreas) {
+    const queryLine = {...moved, width: size.width, height: COLLAPSED_HEIGHT};
+    const workArea = workAreas.find(area => contains(area, queryLine));
+    if (workArea === undefined)
+        return null;
+    const lowestTop = workArea.y + Math.max(0, workArea.height - size.height);
+    return {x: moved.x, y: Math.min(moved.y, lowestTop)};
 }
 
 /**
