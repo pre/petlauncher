@@ -1,0 +1,19 @@
+[package]
+name = "petlauncher-providers"
+description = "Providers for each petlauncher search crate, and the Launcher object that the program holds"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+petlauncher-apps = { path = "../petlauncher-apps" }
+petlauncher-calc = { path = "../petlauncher-calc" }
+petlauncher-config = { path = "../petlauncher-config" }
+petlauncher-core = { path = "../petlauncher-core" }
+petlauncher-dict = { path = "../petlauncher-dict" }
+petlauncher-index = { path = "../petlauncher-index" }
+petlauncher-time = { path = "../petlauncher-time" }
+
+[dev-dependencies]
+tempfile = "3"
