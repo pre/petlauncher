@@ -77,15 +77,15 @@ fn r7_a_shortcut_opens_target_a_with_an_argument_and_target_b_without_one() {
     let fixture = Fixture::new();
     fixture.write_shortcuts(
         "[[shortcut]]\n\
-         name = \"Spur pull requests\"\n\
-         keyword = \"spur\"\n\
+         name = \"Rektangel pull requests\"\n\
+         keyword = \"rektangel\"\n\
          cmd = \"https://github.com/LOLm/cat/pull/%s\"\n\
          cmd_without_argument = \"https://github.com/LOLm/cat/pulls\"\n",
     );
     let launcher = fixture.start();
 
-    let with_argument = search(&launcher, "spur 123");
-    let without_argument = search(&launcher, "spur");
+    let with_argument = search(&launcher, "rektangel 123");
+    let without_argument = search(&launcher, "rektangel");
 
     let url = |url: &str| Action::OpenUrl {
         url: url.into(),

@@ -167,7 +167,7 @@ mod tests {
     #[test]
     fn the_keyword_is_the_text_before_the_first_space() {
         assert_eq!(split_keyword("g rust  traits"), Some(("g", "rust  traits")));
-        assert_eq!(split_keyword("spur\t123"), Some(("spur", "123")));
-        assert_eq!(split_keyword("spur"), None);
+        assert_eq!(split_keyword("rektangel\t123"), Some(("rektangel", "123")));
+        assert_eq!(split_keyword("rektangel"), None);
     }
 }

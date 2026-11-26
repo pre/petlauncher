@@ -92,8 +92,8 @@ cmd = "https://www.example.com/search?q=%s"
 icon = "web-browser"
 
 [[shortcut]]
-name = "Spur pull request"
-keyword = "spur"
+name = "Rektangel pull request"
+keyword = "rektangel"
 cmd = "https://github.com/LOLm/cat/pull/%s"
 cmd_without_argument = "https://github.com/LOLm/cat/pulls"
 

@@ -6,10 +6,10 @@ use common::{fake_applications, fake_calculator, search_with, titles, TempHome};
 use petlauncher_core::config::{Browser, Settings, Shortcut};
 use petlauncher_core::{activate, Action, Key, Mode, Slot};
 
-fn spur() -> Shortcut {
+fn rektangel() -> Shortcut {
     Shortcut {
-        name: "Spur pull request".into(),
-        keyword: "spur".into(),
+        name: "Rektangel pull request".into(),
+        keyword: "rektangel".into(),
         cmd: "https://github.com/LOLm/cat/pull/%s".into(),
         cmd_without_argument: "https://github.com/LOLm/cat/pulls".into(),
         ..Shortcut::default()
@@ -34,10 +34,15 @@ fn url(url: &str) -> Action {
 }
 
 #[test]
-fn r7_step1_spur_with_a_number_opens_that_pull_request() {
+fn r7_step1_rektangel_with_a_number_opens_that_pull_request() {
     let home = TempHome::new();
     let engine = home.engine();
-    let results = search_with(&engine, "spur 123", &Settings::default(), &[spur()]);
+    let results = search_with(
+        &engine,
+        "rektangel 123",
+        &Settings::default(),
+        &[rektangel()],
+    );
 
     let outcome = activate(&results, results.selected, Key::Enter);
 
@@ -48,12 +53,12 @@ fn r7_step1_spur_with_a_number_opens_that_pull_request() {
 }
 
 #[test]
-fn r7_step2_spur_with_no_argument_opens_the_list_of_pull_requests() {
+fn r7_step2_rektangel_with_no_argument_opens_the_list_of_pull_requests() {
     let home = TempHome::new();
     let engine = home.engine();
 
-    for query in ["spur", "spur "] {
-        let results = search_with(&engine, query, &Settings::default(), &[spur()]);
+    for query in ["rektangel", "rektangel "] {
+        let results = search_with(&engine, query, &Settings::default(), &[rektangel()]);
 
         let outcome = activate(&results, results.selected, Key::Enter);
 
@@ -78,7 +83,7 @@ fn r6_enter_on_a_shortcut_that_needs_an_argument_and_has_none_does_nothing() {
 fn r6_a_query_that_matches_nothing_shows_the_default_search_shortcuts_with_the_full_query() {
     let home = TempHome::new();
     let engine = home.engine();
-    let shortcuts = [spur(), google()];
+    let shortcuts = [rektangel(), google()];
 
     let results = search_with(&engine, "zzq rust", &Settings::default(), &shortcuts);
 
@@ -106,7 +111,7 @@ fn r6_the_keyword_ignores_letter_case() {
     let home = TempHome::new();
     let engine = home.engine();
 
-    let results = search_with(&engine, "Spur 9", &Settings::default(), &[spur()]);
+    let results = search_with(&engine, "Rektangel 9", &Settings::default(), &[rektangel()]);
 
     assert_eq!(
         results.rows[0].enter,

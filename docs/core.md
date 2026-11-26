@@ -118,7 +118,7 @@ The engine examines the query in this order. The first rule that applies selects
 5. **Shortcut**: the first word is the keyword of one or more shortcuts, and a space follows it. One row for each of these shortcuts, with the rest of the query as the argument.
 6. **General**: all other queries.
 
-The comparison of a keyword ignores letter case. The argument has no spaces at its start and end. The engine removes the spaces at the end of the query before rule 3, so `spur ` is the same as `spur`.
+The comparison of a keyword ignores letter case. The argument has no spaces at its start and end. The engine removes the spaces at the end of the query before rule 3, so `rektangel ` is the same as `rektangel`.
 
 The file search keyword and the dictionary keyword win over a shortcut with the same keyword. For this reason the Cambridge Dictionary shortcut moves from `d` to `dd` (R6).
 
@@ -128,7 +128,7 @@ A keyword with no argument is a general search. Thus `f` and `d` alone show the 
 
 The rows come in this order:
 
-1. The shortcuts whose keyword is the full query, with no argument. Thus `spur` gives the `spur` row first (R7 step 2).
+1. The shortcuts whose keyword is the full query, with no argument. Thus `rektangel` gives the `rektangel` row first (R7 step 2).
 2. `Slot::Calculator`, then `Slot::Time`.
 3. The rows of `Slot::Applications`, `Slot::SystemCommands` and `Slot::SettingsPages` whose title matches the query with `match_rank`: the title or a word of the title starts with the query. The applications are not asked when "Include applications in search" is off (R3).
 4. The other rows of the same three slots. They match only in other text, for example inside a word or in a keyword.

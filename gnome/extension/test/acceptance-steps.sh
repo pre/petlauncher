@@ -105,12 +105,12 @@ hide_launcher
 # ----------------------------------------------------------------- R7
 
 begin R7.1
-query 'spur 123'
+query 'rektangel 123'
 keys Return
 expect "the browser opens the pull request" launches.log launched "browser | https://github.com/LOLm/cat/pull/123"
 
 begin R7.2
-query 'spur'
+query 'rektangel'
 keys Return
 expect "the browser opens the list of pull requests" launches.log launched "browser | https://github.com/LOLm/cat/pulls"
 

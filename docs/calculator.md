@@ -46,7 +46,7 @@ A query is a calculation when all of these are true:
 | `5 kg in MB` | `Cannot convert mass to data size` | Known units, different dimensions |
 | `42`, `-42`, `(42)`, `1e3`, `+358401234567` | None | Bare number |
 | `e`, `pi`, `-pi` | None | Bare constant. `e` and `pi` are also the start of names such as `evince`. |
-| `firefox`, `d launch`, `spur 123`, `c++` | None | Unknown name |
+| `firefox`, `d launch`, `rektangel 123`, `c++` | None | Unknown name |
 | `2024-11-24`, `24/11/2024`, `040-123-4567` | None | Date rule |
 | `24.11.2024`, `1.2.3`, `192.168.1.1` | None | Not valid syntax |
 | `~/a/b`, `/usr/bin`, `17:00 in las vegas` | None | Character or position that no calculation uses |

@@ -74,7 +74,7 @@ fn text_that_is_not_a_calculation_gives_no_row() {
         "040-123-4567",
         "~/a/b",
         "/usr/bin",
-        "spur 123",
+        "rektangel 123",
         "f palette-zoom",
         "42",
         "-42",

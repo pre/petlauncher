@@ -213,13 +213,16 @@ mod tests {
 
     #[test]
     fn r7_command_without_argument_wins_over_run_without_argument() {
-        let spur = Shortcut {
+        let rektangel = Shortcut {
             cmd_without_argument: "https://github.com/LOLm/cat/pulls".into(),
             run_without_argument: true,
-            ..shortcut("spur", "https://github.com/LOLm/cat/pull/%s")
+            ..shortcut("rektangel", "https://github.com/LOLm/cat/pull/%s")
         };
 
-        assert_eq!(enter(&spur, ""), url("https://github.com/LOLm/cat/pulls"));
+        assert_eq!(
+            enter(&rektangel, ""),
+            url("https://github.com/LOLm/cat/pulls")
+        );
     }
 
     #[test]
