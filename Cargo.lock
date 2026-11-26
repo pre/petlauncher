@@ -1045,6 +1045,7 @@ dependencies = [
  "petlauncher-core",
  "petlauncher-dict",
  "petlauncher-gnome",
+ "petlauncher-index",
  "petlauncher-providers",
  "tempfile",
 ]
