@@ -21,7 +21,7 @@ pub use cancel::CancelToken;
 pub use contract::{
     Action, Icon, Key, Mode, Outcome, Results, Row, RowKind, SystemCommand, TypedPath,
 };
-pub use desktop::{ColorScheme, Desktop, DesktopError};
+pub use desktop::{Desktop, DesktopError, FolderOpened};
 pub use engine::Engine;
 pub use kept_query::{keep_query_warning, Clock, CloseReason, KeptQuery, ManualClock, SystemClock};
 pub use keys::activate;

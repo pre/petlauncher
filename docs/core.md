@@ -87,7 +87,7 @@ let mut engine = Engine::new(home);
 engine
     .register(Slot::Calculator, CalcProvider::new())
     .register(Slot::Applications, AppsProvider::new(entries))
-    .register(Slot::SettingsPages, SettingsPages::new(desktop.settings_pages()))
+    .register(Slot::SettingsPages, SettingsPages::new(pages))
     .register(Slot::FileSearch, IndexProvider::new(index));
 ```
 
@@ -220,15 +220,19 @@ The user interface puts the query in the query line, selects all its text and se
 
 ## Desktop trait
 
-The program calls the `Desktop` trait. The core does not call it. `petlauncher-gnome` implements it.
+The program calls the `Desktop` trait. The core does not call it. `petlauncher-gnome` implements it, see [gnome-desktop.md](gnome-desktop.md).
 
 | Method | Requirement |
 |---|---|
-| `open_folder`, `show_in_folder` | R1, R2 |
-| `run_system_command`, `settings_pages` | R16 |
+| `open_folder`, `show_in_folder` | R1, R2. The result `FolderOpened` tells if the file manager opened the folder, or if the desktop part used the default application for folders as a fallback. |
+| `run_system_command` | R16 |
 | `global_key`, `set_global_key` | R4 |
 | `center_window` | R11 |
-| `color_scheme`, `watch_color_scheme` | R17 |
 | `set_tray_icon_visible` | R3 |
 
 The methods run on the thread of the user interface, so the trait does not need `Send`.
+
+These functions are not in the trait:
+
+- The settings pages (R16). `petlauncher-apps` finds them with a rule that the desktop part gives, `petlauncher_gnome::is_settings_page` on GNOME. The `pages` in the example above come from these entries.
+- The light or dark style (R17). libadwaita follows the style of the system by itself: the program does not set a color scheme, and reads `AdwStyleManager` when it must know the style.

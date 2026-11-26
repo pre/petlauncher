@@ -5,7 +5,7 @@ use std::path::{Path, PathBuf};
 use std::time::SystemTime;
 
 use petlauncher_core::{
-    Action, Clock, ColorScheme, Desktop, DesktopError, SettingsPage, SystemClock, SystemCommand,
+    Action, Clock, Desktop, DesktopError, FolderOpened, SystemClock, SystemCommand,
 };
 
 #[derive(Default)]
@@ -21,20 +21,20 @@ impl FakeDesktop {
 }
 
 impl Desktop for FakeDesktop {
-    fn open_folder(&self, folder: &Path) -> Result<(), DesktopError> {
-        self.record(format!("open_folder {}", folder.display()))
+    fn open_folder(&self, folder: &Path) -> Result<FolderOpened, DesktopError> {
+        self.record(format!("open_folder {}", folder.display()))?;
+        Ok(FolderOpened::FileManager)
     }
 
-    fn show_in_folder(&self, item: &Path) -> Result<(), DesktopError> {
-        self.record(format!("show_in_folder {}", item.display()))
+    fn show_in_folder(&self, item: &Path) -> Result<FolderOpened, DesktopError> {
+        self.record(format!("show_in_folder {}", item.display()))?;
+        Ok(FolderOpened::Fallback {
+            reason: "no file manager".into(),
+        })
     }
 
     fn run_system_command(&self, command: SystemCommand) -> Result<(), DesktopError> {
         self.record(format!("system {}", command.title()))
-    }
-
-    fn settings_pages(&self) -> Vec<SettingsPage> {
-        Vec::new()
     }
 
     fn global_key(&self) -> Result<Option<String>, DesktopError> {
@@ -49,14 +49,6 @@ impl Desktop for FakeDesktop {
         Ok(())
     }
 
-    fn color_scheme(&self) -> ColorScheme {
-        ColorScheme::Dark
-    }
-
-    fn watch_color_scheme(&self, on_change: Box<dyn Fn(ColorScheme)>) {
-        on_change(ColorScheme::Light);
-    }
-
     fn set_tray_icon_visible(&self, _visible: bool) -> Result<(), DesktopError> {
         Ok(())
     }
@@ -65,8 +57,8 @@ impl Desktop for FakeDesktop {
 /// The part of the program that gives an action to the desktop.
 fn execute(desktop: &dyn Desktop, action: &Action) -> Result<(), DesktopError> {
     match action {
-        Action::OpenFolder(folder) => desktop.open_folder(folder),
-        Action::ShowInFolder(item) => desktop.show_in_folder(item),
+        Action::OpenFolder(folder) => desktop.open_folder(folder).map(drop),
+        Action::ShowInFolder(item) => desktop.show_in_folder(item).map(drop),
         Action::System(command) => desktop.run_system_command(*command),
         _ => Ok(()),
     }
@@ -87,6 +79,22 @@ fn the_program_gives_the_file_manager_and_system_actions_to_the_desktop() {
     assert_eq!(
         *desktop.calls.borrow(),
         ["open_folder /a", "show_in_folder /a/b.png", "system Lock"]
+    );
+}
+
+#[test]
+fn the_file_manager_methods_tell_if_the_desktop_used_a_fallback() {
+    let desktop = FakeDesktop::default();
+
+    let opened = desktop.open_folder(Path::new("/a")).unwrap();
+    let shown = desktop.show_in_folder(Path::new("/a/b.png")).unwrap();
+
+    assert_eq!(opened, FolderOpened::FileManager);
+    assert_eq!(
+        shown,
+        FolderOpened::Fallback {
+            reason: "no file manager".into()
+        }
     );
 }
 

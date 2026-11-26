@@ -46,7 +46,8 @@ pub enum Slot {
     Applications,
     /// R16. `Engine::new` adds the built-in `SystemCommands` here.
     SystemCommands,
-    /// R16. The program adds `SettingsPages` with `Desktop::settings_pages`.
+    /// R16. The program adds `SettingsPages` with the pages that the rule of
+    /// the desktop part finds.
     SettingsPages,
     /// R14, after the keyword `settings.file_search.keyword`.
     FileSearch,

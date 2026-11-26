@@ -58,7 +58,8 @@ fn system_row(command: SystemCommand) -> Row {
 }
 
 /// One page of the system settings, for example Wi-Fi (R16).
-/// `Desktop::settings_pages` gives the list.
+/// The desktop part gives the rule that finds the pages: see
+/// `docs/applications.md`.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SettingsPage {
     pub title: String,
