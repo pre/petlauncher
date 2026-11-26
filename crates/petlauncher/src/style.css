@@ -1,0 +1,40 @@
+/* The launcher window. The colors come from libadwaita, so the window
+   follows the light or dark style of the system (R17). */
+
+.query-bar {
+  padding: 0 14px;
+}
+
+/* The query line has no frame: the window is its frame. */
+entry.query,
+entry.query:focus-within {
+  font-size: 1.4em;
+  min-height: 40px;
+  background: none;
+  box-shadow: none;
+  outline: none;
+}
+
+entry.query > image {
+  -gtk-icon-size: 20px;
+  margin-right: 18px;
+}
+
+/* A margin, not a padding of the list: the maximum height of the list is a
+   number of rows. */
+.results-scroller {
+  margin: 6px;
+}
+
+list.results {
+  background: none;
+}
+
+list.results > row {
+  border-radius: 8px;
+  padding: 6px 10px;
+}
+
+.result-subtitle {
+  font-size: 0.9em;
+}
