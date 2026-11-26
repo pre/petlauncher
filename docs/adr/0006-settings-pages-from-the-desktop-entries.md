@@ -10,4 +10,4 @@ The settings pages of the desktop are desktop entries. The `Launcher` reads them
 
 ## Consequences
 
-- The `Launcher` does not use `Desktop::settings_pages` or `petlauncher_core::SettingsPages`. They are only for a desktop whose settings pages are not desktop entries.
+- The trait `Desktop` has no method for the settings pages. The provider `petlauncher_core::SettingsPages` is only for a desktop whose settings pages are not desktop entries.
