@@ -1,0 +1,13 @@
+[package]
+name = "petlauncher-apps"
+description = "Desktop entries of applications and settings pages, with a ranked search"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+unicode-normalization = "0.1"
+
+[dev-dependencies]
+tempfile = "3"
