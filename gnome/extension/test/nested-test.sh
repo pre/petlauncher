@@ -8,12 +8,15 @@
 # reasons and the results.
 #
 # Usage: nested-test.sh [--out DIR] [--owner-layout] [--no-animations]
-#                       [--no-extension] [--program PATH]
+#                       [--no-extension] [--program PATH [--steps FILE]]
 #   --out DIR         Evidence directory (logs, JSON, screenshots).
 #   --program PATH    Test the real petlauncher binary at PATH with the steps
 #                     of program-steps.sh, in place of fake-petlauncher.js.
 #                     The program gets its own settings directory and a tree
 #                     of test files in the test HOME.
+#   --steps FILE      With --program: the steps of FILE in place of
+#                     program-steps.sh, for example dictionary-steps.sh.
+#                     The variable PETLAUNCHER_WORDNET_PATH goes to the steps.
 #   --owner-layout    The monitors of the owner: 6016x3384 at scale 2, and
 #                     2880x1800 at scale 1.5 to the right of it, 234 pixels
 #                     lower. Default: 3008x1692 and 1920x1200 at scale 1,
@@ -32,6 +35,7 @@ if [[ "${1:-}" != --inner ]]; then
     extension=on
     animations=true
     program=""
+    steps="$here/program-steps.sh"
     while [[ $# -gt 0 ]]; do
         case "$1" in
         --out) out=$2; shift 2 ;;
@@ -42,6 +46,7 @@ if [[ "${1:-}" != --inner ]]; then
         --no-animations) animations=false; shift ;;
         --no-extension) extension=off; shift ;;
         --program) program=$(realpath "$2"); shift 2 ;;
+        --steps) steps=$(realpath "$2"); shift 2 ;;
         *) echo "unknown argument $1" >&2; exit 2 ;;
         esac
     done
@@ -72,7 +77,8 @@ if [[ "${1:-}" != --inner ]]; then
         XDG_STATE_HOME="$root/home/.local/state" GSETTINGS_BACKEND=keyfile \
         DBUS_SYSTEM_BUS_ADDRESS="unix:path=$root/run/system_bus" \
         OUT="$out" MONITORS="$monitors" LAYOUT="$layout" EXTENSION="$extension" \
-        PROGRAM="$program" \
+        PROGRAM="$program" STEPS="$steps" \
+        PETLAUNCHER_WORDNET_PATH="${PETLAUNCHER_WORDNET_PATH:-}" \
         timeout 600 dbus-run-session -- "${BASH_SOURCE[0]}" --inner 2>"$out/bus.log" || status=$?
     kill "$system_bus_pid" 2>/dev/null || true
     # Services of the private bus can still write for a moment after it stops.
@@ -211,7 +217,7 @@ snapshot start 0
 
 if [[ -n $PROGRAM ]]; then
     # shellcheck source=program-steps.sh
-    source "$here/program-steps.sh"
+    source "$STEPS"
     finish_test
     exit 0
 fi
