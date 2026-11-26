@@ -1,0 +1,25 @@
+[package]
+name = "petlauncher-calc"
+description = "Calculator of the petlauncher query line: arithmetic, percent, units and currencies"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[features]
+default = ["fetch"]
+# The HTTP client that downloads the currency rates. Without it, the crate has
+# no network code.
+fetch = ["dep:ureq"]
+
+[dependencies]
+roxmltree = "0.21"
+rust_decimal = { version = "1.42", default-features = false, features = ["std", "maths"] }
+ureq = { version = "3.4", default-features = false, features = ["rustls", "platform-verifier"], optional = true }
+
+[dev-dependencies]
+tempfile = "3"
+
+[[example]]
+name = "fetch_rates"
+required-features = ["fetch"]
