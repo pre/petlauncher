@@ -377,9 +377,17 @@ sleep 0.5
 
 # Missing data: the page with the cause, the path and the command. The
 # command is the last line of dark text. A drag over it selects it, and
-# Ctrl+C copies it.
+# Ctrl+C copies it. With missing data the launcher gives only the row
+# "Install the dictionary", whose Enter copies the command, so the window
+# opens with good data first, and its search field asks for the word after
+# the change of the setting.
+open_from_launcher missing-data-before launcher
 write_settings true /nonexistent/wordnet
-open_from_launcher missing-data launcher
+keys Control_L+l
+type_text launcher
+mark missing-data
+keys Return
+sleep 1.2
 check missing-data
 shot dict-missing-data-dark
 gsettings set org.gnome.desktop.interface color-scheme default
