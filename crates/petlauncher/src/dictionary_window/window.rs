@@ -218,12 +218,23 @@ impl DictionaryWindow {
         self.word_scroller
             .vadjustment()
             .connect_changed(move |adjustment| {
-                if let Some(scroll) = weak_scroll
+                let Some(scroll) = weak_scroll
                     .upgrade()
                     .and_then(|this| this.pending_scroll.take())
-                {
+                else {
+                    return;
+                };
+                // The viewport emits `changed` in its size allocation, and
+                // a new value at that time does not move the page.
+                let adjustment = adjustment.clone();
+                glib::idle_add_local_once(move || {
                     adjustment.set_value(scroll);
-                }
+                    log::debug(format_args!(
+                        "dictionary window: scroll {:.0} of {:.0} restored",
+                        adjustment.value(),
+                        adjustment.upper()
+                    ));
+                });
             });
 
         let run_in_background = Rc::clone(&self.run_in_background);
@@ -269,7 +280,11 @@ impl DictionaryWindow {
     }
 
     fn keep_scroll(&self) {
+        if self.current_page.get() != WORD {
+            return;
+        }
         let scroll = self.word_scroller.vadjustment().value();
+        log::debug(format_args!("dictionary window: scroll {scroll:.0} kept"));
         self.history.borrow_mut().set_scroll(scroll);
     }
 

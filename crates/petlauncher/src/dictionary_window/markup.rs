@@ -17,6 +17,10 @@ const MORE_LINK: &str = "more:";
 /// 50 more specific words. The synonyms and the opposites show in full.
 pub const RELATED_WORDS: usize = 4;
 
+/// The start of a text in which a line does not break. A no-break space
+/// would do the same, but it would also go to the clipboard.
+const NO_BREAK: &str = "<span allow_breaks=\"false\">";
+
 /// The space between two lists of words on one line.
 const LIST_SPACE: &str = "     ";
 
@@ -82,10 +86,11 @@ pub fn meaning(meaning: &Meaning, headword: &str, expanded: bool) -> String {
     let mut hidden = 0;
     let mut related_lists = Vec::new();
     for (name, words) in related.iter().filter(|(_, words)| !words.is_empty()) {
-        let shown = if expanded {
+        // A link "1 more" would take the place of the word.
+        let shown = if expanded || words.len() <= RELATED_WORDS + 1 {
             words.len()
         } else {
-            words.len().min(RELATED_WORDS)
+            RELATED_WORDS
         };
         hidden += words.len() - shown;
         related_lists.push(named_list(name, &words[..shown]));
@@ -113,8 +118,19 @@ pub fn meaning(meaning: &Meaning, headword: &str, expanded: bool) -> String {
     text
 }
 
+/// The name and the first word stay on one line, so a line does not end
+/// with "See" or with "Synonyms".
 fn named_list(name: &str, words: &[String]) -> String {
-    format!("<span {QUIET}>{name}</span>  {}", word_links(words, ", "))
+    let (first, rest) = words.split_first().expect("a list with words");
+    let mut text = format!(
+        "{NO_BREAK}<span {QUIET}>{name}</span>  {}</span>",
+        word_links(std::slice::from_ref(first), "")
+    );
+    if !rest.is_empty() {
+        text.push_str(", ");
+        text.push_str(&word_links(rest, ", "));
+    }
+    text
 }
 
 /// WordNet writes a quotation inside a definition as `good'. This gives
@@ -136,13 +152,14 @@ fn quotes(text: &str) -> String {
         .collect()
 }
 
-/// Links to the words, with `separator` between them.
+/// Links to the words, with `separator` between them. A line does not
+/// break inside a word of two or more parts, such as "take to the woods".
 pub fn word_links(words: &[String], separator: &str) -> String {
     words
         .iter()
         .map(|word| {
             let word = markup_escape_text(word);
-            format!("<a href=\"{WORD_LINK}{word}\">{word}</a>")
+            format!("{NO_BREAK}<a href=\"{WORD_LINK}{word}\">{word}</a></span>")
         })
         .collect::<Vec<_>>()
         .join(separator)
@@ -252,7 +269,7 @@ mod tests {
     fn a_long_relation_shows_some_words_and_a_link_to_the_rest() {
         let mut better = fake::meaning(WordClass::Verb, "to make better");
         better.hyponyms = (1..=10).map(|n| format!("word{n}")).collect();
-        better.see_also = words(&["a", "b", "c", "d", "e"]);
+        better.see_also = words(&["a", "b", "c", "d", "e", "f"]);
 
         let short = meaning(&better, "better", false);
         let long = meaning(&better, "better", true);
@@ -261,12 +278,23 @@ mod tests {
         assert!(!short.contains("word:word5"));
         assert!(!short.contains("word:e"));
         assert!(
-            short.ends_with("<a href=\"more:\">7 more</a></span>"),
+            short.ends_with("<a href=\"more:\">8 more</a></span>"),
             "{short}"
         );
         assert!(long.contains("word:word10"));
-        assert!(long.contains("word:e"));
+        assert!(long.contains("word:f"));
         assert!(!long.contains("more:"));
+    }
+
+    #[test]
+    fn a_list_with_one_word_more_than_the_limit_shows_in_full() {
+        let mut run = fake::meaning(WordClass::Verb, "stretch out over a distance");
+        run.hyponyms = words(&["come", "radiate", "ray", "go far", "go deep"]);
+
+        let markup = meaning(&run, "run", false);
+
+        assert!(markup.contains("word:go deep"), "{markup}");
+        assert!(!markup.contains("more:"), "{markup}");
     }
 
     #[test]
@@ -282,6 +310,23 @@ mod tests {
         assert!(lines[2].starts_with("Synonyms  synonym1, "), "{text}");
         assert!(lines[2].ends_with("synonym8     Opposite  small"), "{text}");
         assert_eq!(lines[3], "More general  size");
+    }
+
+    #[test]
+    fn a_line_does_not_break_after_a_list_name_or_inside_a_word() {
+        let mut run = fake::meaning(WordClass::Verb, "flee");
+        run.see_also = words(&["run around", "run away"]);
+
+        let markup = meaning(&run, "run", false);
+
+        assert!(
+            markup.contains(
+                "<span allow_breaks=\"false\"><span fgalpha=\"62%\">See also</span>  \
+                 <span allow_breaks=\"false\"><a href=\"word:run around\">run around</a></span></span>, \
+                 <span allow_breaks=\"false\"><a href=\"word:run away\">"
+            ),
+            "{markup}"
+        );
     }
 
     #[test]
