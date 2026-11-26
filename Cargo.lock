@@ -599,6 +599,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "petlauncher-providers"
+version = "0.1.0"
+dependencies = [
+ "petlauncher-apps",
+ "petlauncher-calc",
+ "petlauncher-config",
+ "petlauncher-core",
+ "petlauncher-dict",
+ "petlauncher-index",
+ "petlauncher-time",
+ "tempfile",
+]
+
+[[package]]
 name = "petlauncher-time"
 version = "0.1.0"
 dependencies = [
