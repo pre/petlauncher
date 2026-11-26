@@ -203,9 +203,13 @@ fn a_folder_that_cannot_be_read_gives_no_rows() {
     home.file("locked/secret.txt", 1);
     let locked = home.path("locked");
     fs::set_permissions(&locked, fs::Permissions::from_mode(0o000)).unwrap();
+    let permissions_have_effect = fs::read_dir(&locked).is_err();
 
     let results = search(&home.engine(), "~/locked/sec");
 
     fs::set_permissions(&locked, fs::Permissions::from_mode(0o755)).unwrap();
-    assert!(results.rows.is_empty());
+    // The root user can read the folder with all permissions removed.
+    if permissions_have_effect {
+        assert!(results.rows.is_empty());
+    }
 }
