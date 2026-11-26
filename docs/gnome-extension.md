@@ -26,7 +26,8 @@ The program must obey this contract. The extension finds the program and its lau
 | Hide | `set_visible(false)`, as in the test. GTK 4 then removes the window from Mutter, and each show makes a new window in Mutter. The extension moves each new window. |
 | Size | Give the launcher its width (R5, initial value 750) and its height before `present()`. The extension does not change the size. |
 | Collapsed height | With no rows, the launcher is 64 logical pixels high. This is `COLLAPSED_HEIGHT` in `launcher.js` and in `crates/petlauncher/src/window.rs`: change the two together. The extension puts the top of the launcher where a launcher of this height is at the center of the work area. Thus the query line has the same place for each height of the window, and a launcher that shows with a kept query and its rows (R9) goes down from it. |
-| Size change after the show | The window grows downward: Mutter keeps the top left corner. The extension does not move the window again. |
+| Size change after the show | The window grows downward: Mutter keeps the top left corner, also after a move by the owner. The extension does not move the window again. |
+| Move | The owner can move the launcher with the mouse (a `GtkWindowHandle` in the program). A show with the kept query of R9 opens at the moved place (ADR 0009). |
 | Window state | The launcher is not maximized and not full screen. |
 | Focus | The program does not need to ask for the focus. The extension activates the launcher window when it shows. |
 
@@ -40,6 +41,7 @@ The program adds these actions to the application, for example with `gio::Simple
 | `settings` | none | none | Show the settings window. |
 | `quit` | none | none | Stop the process, also when "Run in background" is on. |
 | `tray-icon` | none | boolean | The value of the setting `show_tray_icon`. Make the action disabled, so that nobody can activate it. Change its state each time the setting changes, also after a change of `settings.toml` in an editor (R18). |
+| `kept-query-until` | none | int64 | ADR 0009: the wall-clock time in microseconds since 1970 until which a show of the launcher has the kept query of R9. `0`: no kept query. `-1`: no time limit. Make the action disabled. Change its state after each hide and after each change of `settings.toml`, but not at a show, because the extension reads it at the map. |
 
 A sketch in Rust with gtk-rs. It was not compiled:
 
@@ -72,10 +74,12 @@ gdbus call --session --dest pet.repo.Petlauncher --object-path /pet/repo/Petlaun
 
 1. The extension connects to the signal `map` of `global.window_manager`. GNOME Shell emits it after the first buffer of a window, and before it paints the window for the first time.
 2. In the signal, the extension accepts the window only when its Wayland application ID (`get_wm_class()`) is `pet.repo.Petlauncher` and its title is `petlauncher`.
-3. It gets the monitor with the pointer (`global.display.get_current_monitor()`) and the work area of that monitor. The work area is the monitor without the top bar.
-4. It calculates the top left corner of the frame (`launcherPosition` in `launcher.js`). The frame is at the horizontal center of the work area. Its top is the top of a launcher with the collapsed height at the vertical center. A launcher that goes below the work area moves up. The calculation rounds a half pixel down. When the window is larger than the work area, the top left corner stays in the work area.
+3. When the owner moved the launcher in an earlier show, and the state of `kept-query-until` is later than the wall clock (`queryKept`), the extension uses the moved place (`movedPosition` in `launcher.js`, ADR 0009) and continues at step 5. A launcher that goes below the work area at that place moves up. When the show has no kept query, or the query line at the moved place is not fully in a work area, the extension forgets the moved place.
+4. Else it gets the monitor with the pointer (`global.display.get_current_monitor()`) and the work area of that monitor. The work area is the monitor without the top bar. It calculates the top left corner of the frame (`launcherPosition` in `launcher.js`). The frame is at the horizontal center of the work area. Its top is the top of a launcher with the collapsed height at the vertical center. A launcher that goes below the work area moves up. The calculation rounds a half pixel down. When the window is larger than the work area, the top left corner stays in the work area.
 5. It moves the window with `move_frame()`. The size does not change, so Mutter does the move at once.
 6. It activates the window with `Main.activateWindow()`.
+
+The extension remembers a move at the signal `grab-op-end` of `global.display`, when the launcher is not at the place that the extension gave it at the map. The program does not tell the extension about a move.
 
 Why not earlier: at the signal `window-created`, the title and the application ID of a GTK 4 window are still empty (measured, see the test results). GTK sends them after Mutter makes the window.
 
@@ -118,6 +122,8 @@ gnome/extension/test/nested-test.sh --owner-layout --out DIR   # 6016x3384 at sc
 gnome/extension/test/nested-test.sh --no-animations --out DIR  # enable-animations false
 gnome/extension/test/nested-test.sh --no-extension --out DIR   # baseline with no extension
 gnome/extension/test/nested-test.sh --program target/release/petlauncher --out DIR  # the real program
+gnome/extension/test/nested-test.sh --program target/release/petlauncher \
+    --steps gnome/extension/test/move-steps.sh --out DIR                   # a moved launcher
 ```
 
 `nested-test.sh` starts a separate GNOME Shell with `gnome-shell --headless --wayland --no-x11` and one `--virtual-monitor` for each monitor. It shows nothing on the desktop. It isolates the test shell from the session of the user:
@@ -195,7 +201,23 @@ With the animations on, GNOME plays its open animation: the first frame has an o
 
 The shell logs of all runs have no JavaScript error or warning.
 
-The unit test `test-launcher.js` has 11 tests for the position rule, the window rule and the icon rule. All pass.
+The unit test `test-launcher.js` has 15 tests for the position rule, the moved place, the window rule and the icon rule. All pass.
+
+#### Moved launcher (ADR 0009)
+
+`test/move-steps.sh` moves the launcher with the virtual pointer: a press on the search icon, five moves, and a release. Each case runs 3 times. Run with the debug build on 2026-11-26, 24 checks, 24 pass. Raw evidence: `~/daybook-evidence/petlauncher/2026-11-26-settings-nav/move-run1/` on the owner's computer, with `frames.tsv`, `events.json` and the program log.
+
+| Case | Frame |
+|---|---|
+| A show with no kept query, monitor 0 | `1129,830` |
+| After a move by 300,-200 | `1429,630` |
+| The next show with the kept query, pointer on monitor 1, and the show after it | `1429,630` |
+| After the query was cleared, or after the keep time of 2 s | `1129,830` |
+| A kept query with no move, pointer on monitor 1 | `3593,568` |
+
+The order of the state and the map: each change of `kept-query-until` came to GNOME Shell 0.9 ms to 5.0 ms after the program set it (21 changes, mean 1.5 ms; the log of the program and the probe use the same monotonic clock). In these steps each change came 1129 ms or more before the next map of the launcher.
+
+The move of requirement 7 itself (a test with the debug build): the frame moved from `1129,830` to `1369,650` with the pointer, the launcher kept the focus, and new rows made it higher with the same top left corner. A drag that starts in the entry did not move the window, and a double click on the search icon did not change the frame.
 
 ### Limits and things that were not tested
 

@@ -41,7 +41,8 @@ The launcher is an `AdwApplicationWindow` with the title `petlauncher`. It has n
 |---|---|
 | Width | The setting `window_width` (R5, initial value 750). A change of `settings.toml` has effect at once. |
 | Height | 64 pixels with no rows and no notice. With rows, the window grows downward, up to 8 rows. Then the list scrolls. |
-| Position | The GNOME Shell extension moves the window (R11, ADR 0007). It puts the top of the window where a window of 64 pixels is at the center of the monitor. Thus the query line has the same place for each height. The value 64 is `COLLAPSED_HEIGHT` in `window.rs` and in the extension: change the two together. See [gnome-extension.md](gnome-extension.md). |
+| Move | A press and a drag with the mouse on the free space of the query line or of the notices moves the window: the search icon, the padding and the text of a notice (`GtkWindowHandle`). The entry, the buttons and the rows keep their clicks. The launcher keeps the focus during the move. |
+| Position | The GNOME Shell extension moves the window (R11, ADR 0007). A launcher that the owner moved opens at that place again while the query is kept (ADR 0009). It puts the top of the window where a window of 64 pixels is at the center of the monitor. Thus the query line has the same place for each height. The value 64 is `COLLAPSED_HEIGHT` in `window.rs` and in the extension: change the two together. See [gnome-extension.md](gnome-extension.md). |
 | Style | libadwaita follows the light or dark style of the system (R17). The program does not set a style, and its CSS uses only the colors of libadwaita. |
 | Long text | A title gets an ellipsis at its end, and a subtitle in its middle. A long text does not make the window wider. |
 | First show | The program prepares the window at its start (`realize`), so that the first show is fast. |
@@ -123,7 +124,7 @@ The program never changes a different key binding. Only the key dialog of the se
 
 ## Actions on the session bus
 
-The GNOME Shell extension uses the actions `show`, `settings`, `quit` and `tray-icon` of the application. [gnome-extension.md](gnome-extension.md) gives the contract. The launcher also uses `settings-page`.
+The GNOME Shell extension uses the actions `show`, `settings`, `quit`, `tray-icon` and `kept-query-until` of the application. [gnome-extension.md](gnome-extension.md) gives the contract. The launcher also uses `settings-page`.
 
 | Action | Function |
 |---|---|
@@ -132,6 +133,7 @@ The GNOME Shell extension uses the actions `show`, `settings`, `quit` and `tray-
 | `settings-page` | Parameter: the name of a page, `'general'`, `'global-key'`, `'search'` or `'shortcuts'`. Shows the settings window with that page. With a different name, the window shows the page that it showed last. |
 | `quit` | Stops the program. |
 | `tray-icon` | `GnomeDesktop::add_actions` adds it. Disabled. Its boolean state is the setting `show_tray_icon`, and `set_tray_icon_visible` changes it after each change of `settings.toml`. |
+| `kept-query-until` | `GnomeDesktop::add_actions` adds it. Disabled. Its int64 state tells until when a show has the kept query (ADR 0009). `set_kept_query_until` changes it after each hide and each change of `settings.toml`. |
 
 ## Threads
 

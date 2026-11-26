@@ -1,6 +1,6 @@
 # The extension places the launcher by a fixed collapsed height
 
-Status: accepted. Changes ADR 0005 for the position of the launcher.
+Status: accepted. Changes ADR 0005 for the position of the launcher. ADR 0009 extends it for a launcher that the owner moved.
 
 The query line must have the same place on the monitor for each height of the launcher: a launcher that opens with a kept query and rows must not have its query line higher than an empty launcher. The extension puts the top of the launcher where a launcher of 64 pixels is at the center of the work area, and the program makes the launcher 64 pixels high when it has no rows. The value is `COLLAPSED_HEIGHT` in `gnome/extension/petlauncher@repo.pet/launcher.js` and in `crates/petlauncher/src/window.rs`.
 
