@@ -15,7 +15,7 @@ use std::fs;
 use std::io;
 use std::path::Path;
 
-use petlauncher_gnome::{Conflict, CustomShortcuts, TOGGLE_COMMAND};
+use petlauncher_gnome::{Conflict, CustomShortcuts, SHORTCUTS_PAGE, TOGGLE_COMMAND};
 
 /// The marker file in the state directory. Delete it to do the first
 /// installation again at the next start.
@@ -57,23 +57,23 @@ impl FirstInstall {
         }
     }
 
-    /// The notice for the launcher window, for a conflict only.
+    /// The notice for the launcher window, for a conflict only: one line
+    /// for each key binding with the key.
     pub fn notice(&self) -> Option<String> {
         let Self::Conflicts { key, conflicts } = self else {
             return None;
         };
-        let mut text = format!("petlauncher has no global key: {key} is the key of");
-        for (number, conflict) in conflicts.iter().enumerate() {
-            let joint = if number == 0 { "" } else { " and of" };
-            text.push_str(&format!(
-                "{joint} \"{}\" in {}",
-                conflict.name,
-                conflict.place()
-            ));
+        let mut text =
+            format!("petlauncher has no global key. {key} is the key of these bindings in {SHORTCUTS_PAGE}:");
+        for conflict in conflicts {
+            match &conflict.section {
+                Some(section) => text.push_str(&format!("\n• {section}: {}", conflict.name)),
+                None => text.push_str(&format!("\n• {}, {}", conflict.name, conflict.place())),
+            }
         }
         text.push_str(
-            ". Remove the key there, or with the settings window of petlauncher. \
-             petlauncher tries again when this window opens.",
+            "\nRemove the key there, or with the settings window of petlauncher. \
+             Then open this window again.",
         );
         Some(text)
     }
@@ -262,11 +262,15 @@ mod tests {
 
         let notice = fixture.install("<Super>space").unwrap().notice().unwrap();
 
-        assert!(notice.contains("\"Show Scratch Notes\""), "{notice}");
         assert!(
-            notice.contains(
-                "GNOME Settings > Keyboard > View and Customize Shortcuts > Custom Shortcuts"
+            notice.starts_with(
+                "petlauncher has no global key. <Super>space is the key of these bindings in \
+                 GNOME Settings > Keyboard > View and Customize Shortcuts:"
             ),
+            "{notice}"
+        );
+        assert!(
+            notice.contains("\n• Custom Shortcuts: Show Scratch Notes\n"),
             "{notice}"
         );
         assert!(notice.contains("settings window"), "{notice}");
@@ -303,7 +307,7 @@ mod tests {
         let notice = fixture.install("<Super>space").unwrap().notice().unwrap();
 
         assert!(
-            notice.contains("\"Switch to next input source\" in GNOME Settings > Keyboard > View and Customize Shortcuts > Typing"),
+            notice.contains("\n• Typing: Switch to next input source\n"),
             "{notice}"
         );
     }
