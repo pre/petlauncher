@@ -8,7 +8,10 @@ import {
     launcherPosition,
     isLauncher,
     movedPosition,
+    positionSetting,
     queryKept,
+    relativePlace,
+    TOP_MARGIN,
     trayIconVisible,
 } from '../petlauncher@repo.pet/launcher.js';
 
@@ -164,6 +167,66 @@ test('moves a moved launcher up when its rows go below the work area', () => {
     const position = movedPosition({x: 100, y: 1500}, size, WORK_AREAS);
 
     assertEqual(position, {x: 100, y: 1192});
+});
+
+test('puts the query line at one third of the work area for upper-third', () => {
+    const size = {width: 750, height: 300};
+
+    const position = launcherPosition(size, WORK_AREAS[0], {mode: 'upper-third'});
+
+    assertEqual(position, {x: 1129, y: 553});
+});
+
+test('puts the launcher below the top bar with a margin for top', () => {
+    const size = {width: 750, height: COLLAPSED_HEIGHT};
+
+    const first = launcherPosition(size, WORK_AREAS[0], {mode: 'top'});
+    const second = launcherPosition(size, WORK_AREAS[1], {mode: 'top'});
+
+    assert(TOP_MARGIN === 24, `TOP_MARGIN is ${TOP_MARGIN}`);
+    assertEqual([first, second], [{x: 1129, y: 56}, {x: 3593, y: 258}]);
+});
+
+test('puts a custom place at the same fractions of each work area', () => {
+    const size = {width: 750, height: COLLAPSED_HEIGHT};
+    const custom = {mode: 'custom', x: 0.25, y: 0.1};
+
+    const first = launcherPosition(size, WORK_AREAS[0], custom);
+    const second = launcherPosition(size, WORK_AREAS[1], custom);
+
+    assertEqual([first, second], [{x: 377, y: 198}, {x: 3113, y: 354}]);
+});
+
+test('keeps a custom place in the work area', () => {
+    const custom = {mode: 'custom', x: 1, y: 0.95};
+
+    const collapsed = launcherPosition({width: 750, height: COLLAPSED_HEIGHT}, WORK_AREAS[0], custom);
+    const tall = launcherPosition({width: 750, height: 500}, WORK_AREAS[0], custom);
+
+    assertEqual([collapsed, tall], [{x: 2258, y: 1609}, {x: 2258, y: 1192}]);
+});
+
+test('gives the fractions of a frame that open the launcher at the same frame again', () => {
+    const frame = {x: 377, y: 198, width: 750, height: 300};
+
+    const place = relativePlace(frame, WORK_AREAS[0]);
+    const position = launcherPosition(frame, WORK_AREAS[0], {mode: 'custom', ...place});
+
+    assertEqual(place, {x: 0.25, y: 0.1});
+    assertEqual(position, {x: 377, y: 198});
+});
+
+test('reads the position setting from the action state, with center as the default', () => {
+    const states = [['top', 0, 0], ['custom', 0.25, 0.1], ['sideways', 0, 0], null];
+
+    const settings = states.map(state => positionSetting(state));
+
+    assertEqual(settings, [
+        {mode: 'top', x: 0, y: 0},
+        {mode: 'custom', x: 0.25, y: 0.1},
+        {mode: 'center', x: 0, y: 0},
+        {mode: 'center', x: 0, y: 0},
+    ]);
 });
 
 if (failures.length > 0) {

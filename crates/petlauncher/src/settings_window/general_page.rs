@@ -1,17 +1,27 @@
-//! The page General: the switches of R3, the window width (R5), the time of
-//! the kept query (R9) and the settings files (R18).
+//! The page General: the switches of R3, the window width (R5), the window
+//! position (ADR 0009), the time of the kept query (R9) and the settings
+//! files (R18).
 
 use std::rc::Rc;
 
 use adw::prelude::*;
 use petlauncher_config::validate::WINDOW_WIDTH;
-use petlauncher_config::{ConfigFile, Severity};
+use petlauncher_config::{ConfigFile, Severity, WindowPosition};
 use petlauncher_core::keep_query_warning;
 
 use super::edits::SettingsEdit;
 use super::keep_time::{KeepTime, KeepUnit};
 use super::widgets::{open_button, FileErrorGroup, MessageRow};
 use super::Context;
+
+/// The choices of the row "Position". Custom is last, and it shows only
+/// when `settings.toml` has a pinned place.
+const POSITIONS: [(WindowPosition, &str); 4] = [
+    (WindowPosition::Center, "Center"),
+    (WindowPosition::UpperThird, "Upper third"),
+    (WindowPosition::Top, "Top"),
+    (WindowPosition::Custom, "Custom"),
+];
 
 pub struct GeneralPage {
     pub page: adw::PreferencesPage,
@@ -22,6 +32,7 @@ pub struct GeneralPage {
     show_tray_icon: adw::SwitchRow,
     include_applications: adw::SwitchRow,
     width: adw::SpinRow,
+    position: adw::ComboRow,
     keep_unit: adw::ComboRow,
     keep_number: adw::SpinRow,
     keep_warning: MessageRow,
@@ -80,6 +91,8 @@ impl GeneralPage {
             .numeric(true)
             .build();
         window.add(&width);
+        let position = adw::ComboRow::builder().title("Position").build();
+        window.add(&position);
         page.add(&window);
 
         let kept = adw::PreferencesGroup::builder()
@@ -146,6 +159,7 @@ impl GeneralPage {
             show_tray_icon,
             include_applications,
             width,
+            position,
             keep_unit,
             keep_number,
             keep_warning,
@@ -178,6 +192,15 @@ impl GeneralPage {
             if let Some(context) = weak.upgrade() {
                 let _ = context.save_settings(SettingsEdit::WindowWidth(row.value() as u32));
             }
+        });
+        let weak = Rc::downgrade(context);
+        self.position.connect_selected_notify(move |row| {
+            let (Some(context), Some((position, _))) =
+                (weak.upgrade(), POSITIONS.get(row.selected() as usize))
+            else {
+                return;
+            };
+            let _ = context.save_settings(SettingsEdit::WindowPosition(*position));
         });
         let save_time = {
             let unit = self.keep_unit.clone();
@@ -215,6 +238,26 @@ impl GeneralPage {
         self.include_applications
             .set_active(settings.include_applications);
         self.width.set_value(f64::from(settings.window_width));
+        let pinned = settings.custom_position.is_some();
+        let choices = if pinned { 4 } else { 3 };
+        if self.position.model().map(|model| model.n_items()) != Some(choices) {
+            let labels: Vec<&str> = POSITIONS[..choices as usize]
+                .iter()
+                .map(|(_, label)| *label)
+                .collect();
+            self.position
+                .set_model(Some(&gtk::StringList::new(&labels)));
+        }
+        let selected = POSITIONS[..choices as usize]
+            .iter()
+            .position(|(position, _)| *position == settings.window_position)
+            .unwrap_or(0);
+        self.position.set_selected(selected as u32);
+        self.position.set_subtitle(if pinned {
+            ""
+        } else {
+            "For a place of your own, drag the launcher and select its pin"
+        });
 
         let time = KeepTime::from(settings.keep_query);
         self.keep_unit.set_selected(time.unit.index());

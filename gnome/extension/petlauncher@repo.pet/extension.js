@@ -1,7 +1,8 @@
-// The GNOME part of petlauncher: it puts the launcher window at the center of
-// the monitor with the pointer each time the window shows, with the query line
-// at the same place for each window height. A launcher that the owner moved
-// opens again at that place while the query is kept (ADR 0009). It also adds
+// The GNOME part of petlauncher: it puts the launcher window on the monitor
+// with the pointer each time the window shows, at the place of the setting
+// window_position, with the query line at the same place for each window
+// height. A launcher that the owner moved opens again at that place while the
+// query is kept, and the program can pin that place (ADR 0009). It also adds
 // the petlauncher icon to the top bar. docs/gnome-extension.md gives the
 // contract with the program and the test results.
 import GLib from 'gi://GLib';
@@ -9,7 +10,15 @@ import GLib from 'gi://GLib';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import {Extension} from 'resource:///org/gnome/shell/extensions/extension.js';
 
-import {Action, isLauncher, launcherPosition, movedPosition, queryKept} from './launcher.js';
+import {
+    Action,
+    isLauncher,
+    launcherPosition,
+    movedPosition,
+    positionSetting,
+    queryKept,
+    relativePlace,
+} from './launcher.js';
 import {ProgramActions} from './program.js';
 import {Tray} from './tray.js';
 
@@ -47,19 +56,25 @@ export default class PetlauncherExtension extends Extension {
         if (moved === null)
             this._moved = null;
         const monitor = global.display.get_current_monitor();
-        this._placed = moved ?? launcherPosition(frame, window.get_work_area_for_monitor(monitor));
+        const position = positionSetting(this._actions.state(Action.WINDOW_POSITION));
+        this._placed = moved ??
+            launcherPosition(frame, window.get_work_area_for_monitor(monitor), position);
         window.move_frame(false, this._placed.x, this._placed.y);
         Main.activateWindow(window);
     }
 
     // The launcher cannot change its size with the mouse, so the end of a
-    // grab at a different place is a move by the owner.
+    // grab at a different place is a move by the owner. The program gets the
+    // place as fractions of the work area, for its pin button.
     _onGrabEnd(window) {
         if (!window || !isLauncher(window.get_wm_class(), window.get_title()))
             return;
-        const {x, y} = window.get_frame_rect();
-        if (x !== this._placed?.x || y !== this._placed?.y)
-            this._moved = {x, y};
+        const frame = window.get_frame_rect();
+        if (frame.x === this._placed?.x && frame.y === this._placed?.y)
+            return;
+        this._moved = {x: frame.x, y: frame.y};
+        const place = relativePlace(frame, window.get_work_area_current_monitor());
+        this._actions.activate(Action.LAUNCHER_MOVED, new GLib.Variant('(dd)', [place.x, place.y]));
     }
 }
 

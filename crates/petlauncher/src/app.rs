@@ -8,6 +8,7 @@ use std::rc::{Rc, Weak};
 
 use adw::prelude::*;
 use gtk::{gdk, gio, glib};
+use petlauncher_core::config::CustomPosition;
 use petlauncher_core::Desktop;
 use petlauncher_gnome::GnomeDesktop;
 use petlauncher_providers::Update;
@@ -105,6 +106,12 @@ impl Program {
             }
         });
         let weak = Rc::downgrade(&program);
+        program.launcher.set_on_pin(move |x, y| {
+            if let Some(program) = weak.upgrade() {
+                program.pin_position(CustomPosition { x, y });
+            }
+        });
+        let weak = Rc::downgrade(&program);
         program.launcher.set_after_hide(move || {
             if let Some(program) = weak.upgrade() {
                 program.publish_kept_query();
@@ -149,11 +156,23 @@ impl Program {
                 }
             })
             .build();
+        // ADR 0009: the extension tells a move of the launcher by the owner,
+        // with the place as fractions of the work area.
+        let weak = Rc::downgrade(self);
+        let launcher_moved = gio::ActionEntry::builder("launcher-moved")
+            .parameter_type(Some(glib::VariantTy::new("(dd)").expect("a valid type")))
+            .activate(move |_: &adw::Application, _, parameter| {
+                let place = parameter.and_then(|place| place.get::<(f64, f64)>());
+                if let (Some(program), Some((x, y))) = (weak.upgrade(), place) {
+                    program.launcher.moved(x, y);
+                }
+            })
+            .build();
         let quit = gio::ActionEntry::builder("quit")
             .activate(|app: &adw::Application, _, _| app.quit())
             .build();
         self.app
-            .add_action_entries([show, settings, settings_page, quit]);
+            .add_action_entries([show, settings, settings_page, launcher_moved, quit]);
     }
 
     fn command(&self, command_line: &gio::ApplicationCommandLine) -> glib::ExitCode {
@@ -225,12 +244,31 @@ impl Program {
         self.launcher.apply_settings(&settings);
         if let Ok(desktop) = self.backend.desktop() {
             let _ = desktop.set_tray_icon_visible(settings.show_tray_icon);
+            desktop.set_window_position(settings.window_position, settings.custom_position);
         }
         let notice = self.backend.config_notice();
         if let Some(notice) = &notice {
             log::info(notice);
         }
         self.launcher.set_config_notice(notice);
+    }
+
+    /// ADR 0009: the pin button. The place goes to `settings.toml` and to
+    /// the state of `window-position`.
+    fn pin_position(&self, place: CustomPosition) {
+        log::info(format_args!("pinned the place {place:?}"));
+        match self
+            .backend
+            .launcher()
+            .edit_settings(|editor| editor.pin_position(place))
+        {
+            Ok(()) => self.apply_settings(),
+            Err(error) => {
+                log::info(format_args!("the place is not saved: {error}"));
+                self.launcher
+                    .show_error(format!("The place is not saved: {error}"));
+            }
+        }
     }
 
     /// ADR 0009: tells the extension until when the next show has the kept

@@ -35,12 +35,16 @@ pub const COLLAPSED_HEIGHT: i32 = 64;
 /// The number of rows that show before the list scrolls.
 const VISIBLE_ROWS: i32 = 8;
 
+/// Gets the moved place when the owner selects the pin button.
+type PinHook = dyn Fn(f64, f64);
+
 pub struct LauncherWindow {
     /// The window itself, for the signal handlers of the notices.
     this: Weak<LauncherWindow>,
     window: adw::ApplicationWindow,
     content: gtk::Box,
     entry: gtk::Entry,
+    pin: gtk::Button,
     settings: gtk::Button,
     notice_box: gtk::Box,
     separator: gtk::Separator,
@@ -58,6 +62,11 @@ pub struct LauncherWindow {
     before_show: RefCell<Option<Box<dyn Fn()>>>,
     /// Runs after each hide, after the record of the close.
     after_hide: RefCell<Option<Box<dyn Fn()>>>,
+    /// The place of the last move by the owner in this show, as fractions
+    /// of the work area (ADR 0009). The pin button shows with it.
+    moved_place: Cell<Option<(f64, f64)>>,
+    /// Runs when the owner pins the moved place.
+    on_pin: RefCell<Option<Box<PinHook>>>,
 }
 
 impl LauncherWindow {
@@ -86,8 +95,18 @@ impl LauncherWindow {
                 .build(),
         );
         query_bar.append(&entry);
-        // The button takes no focus, so the typed keys stay in the query
+        // The buttons take no focus, so the typed keys stay in the query
         // line.
+        let pin = gtk::Button::builder()
+            .icon_name("view-pin-symbolic")
+            .tooltip_text("Open Here from Now On")
+            .can_focus(false)
+            .valign(gtk::Align::Center)
+            .visible(false)
+            .css_classes(["flat", "circular"])
+            .build();
+        pin.update_property(&[gtk::accessible::Property::Label("Open Here from Now On")]);
+        query_bar.append(&pin);
         let settings = gtk::Button::builder()
             .icon_name("emblem-system-symbolic")
             .tooltip_text("Settings (Ctrl+,)")
@@ -145,6 +164,7 @@ impl LauncherWindow {
             window,
             content,
             entry,
+            pin,
             settings,
             notice_box,
             separator,
@@ -158,6 +178,8 @@ impl LauncherWindow {
             notices: RefCell::new(Notices::default()),
             before_show: RefCell::new(None),
             after_hide: RefCell::new(None),
+            moved_place: Cell::new(None),
+            on_pin: RefCell::new(None),
         });
         this.set_width(this.backend.settings().window_width);
         this.connect_signals();
@@ -176,6 +198,8 @@ impl LauncherWindow {
             .connect_changed(with(&weak, |this| this.text_changed()));
         self.settings
             .connect_clicked(with(&weak, |this| this.open_settings(None)));
+        self.pin
+            .connect_clicked(with(&weak, |this| this.pin_clicked()));
 
         let keys = gtk::EventControllerKey::new();
         keys.set_propagation_phase(gtk::PropagationPhase::Capture);
@@ -255,6 +279,36 @@ impl LauncherWindow {
         self.after_hide.replace(Some(Box::new(hook)));
     }
 
+    /// Runs `hook` with the moved place when the owner selects the pin
+    /// button.
+    pub fn set_on_pin(&self, hook: impl Fn(f64, f64) + 'static) {
+        self.on_pin.replace(Some(Box::new(hook)));
+    }
+
+    /// The extension tells a move by the owner (ADR 0009): the place as
+    /// fractions of the work area. The pin button shows until the next
+    /// show.
+    pub fn moved(&self, x: f64, y: f64) {
+        log::debug(format_args!("moved to {x:.4} {y:.4}"));
+        self.moved_place.set(Some((x, y)));
+        self.pin.set_visible(true);
+    }
+
+    fn pin_clicked(&self) {
+        if let (Some((x, y)), Some(hook)) = (self.moved_place.take(), self.on_pin.borrow().as_ref())
+        {
+            hook(x, y);
+        }
+        self.pin.set_visible(false);
+    }
+
+    /// An error that stays below the query line until the next text or
+    /// show.
+    pub fn show_error(&self, text: String) {
+        self.notices.borrow_mut().set_action(Some(text));
+        self.show_notices();
+    }
+
     /// R4: the notice that the global key is not set, or `None`.
     pub fn set_global_key_notice(&self, text: Option<String>) {
         self.notices.borrow_mut().set_global_key(text);
@@ -287,6 +341,8 @@ impl LauncherWindow {
         }
         self.notices.borrow_mut().clear_action();
         self.show_notices();
+        self.moved_place.set(None);
+        self.pin.set_visible(false);
         self.set_width(self.backend.settings().window_width);
         let kept = self.backend.window_opened();
         match &kept {

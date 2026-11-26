@@ -1,11 +1,11 @@
 use std::path::Path;
 
-use toml_edit::{DocumentMut, Item, Table, TableLike, Value};
+use toml_edit::{DocumentMut, InlineTable, Item, Table, TableLike, Value};
 
 use super::format::{multi_line_array, push_entry, remove_entry, set_value};
 use crate::error::ConfigError;
 use crate::load::deserialize;
-use crate::model::{KeepQuery, Settings};
+use crate::model::{CustomPosition, KeepQuery, Settings, WindowPosition};
 
 /// The text of a new `settings.toml`, with a comment for each key.
 pub(crate) const SETTINGS_TEMPLATE: &str = include_str!("../templates/settings.toml");
@@ -88,6 +88,31 @@ impl SettingsEditor {
             self.current.window_width = value;
             self.set(None, "window_width", i64::from(value));
         }
+    }
+
+    pub fn set_window_position(&mut self, value: WindowPosition) {
+        if self.current.window_position != value {
+            self.current.window_position = value;
+            self.set(None, "window_position", value.name());
+        }
+    }
+
+    /// The place that the owner pinned: `custom_position` with 4 decimals,
+    /// and `window_position = "custom"`.
+    pub fn pin_position(&mut self, place: CustomPosition) {
+        let round = |value: f64| (value * 10_000.0).round() / 10_000.0;
+        let place = CustomPosition {
+            x: round(place.x),
+            y: round(place.y),
+        };
+        if self.current.custom_position != Some(place) {
+            self.current.custom_position = Some(place);
+            let mut table = InlineTable::new();
+            table.insert("x", place.x.into());
+            table.insert("y", place.y.into());
+            self.set(None, "custom_position", table);
+        }
+        self.set_window_position(WindowPosition::Custom);
     }
 
     pub fn set_keep_query(&mut self, value: KeepQuery) {

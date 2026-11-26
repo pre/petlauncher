@@ -6,6 +6,7 @@ use std::time::UNIX_EPOCH;
 
 use gio::prelude::*;
 use glib::variant::ToVariant;
+use petlauncher_core::config::{CustomPosition, WindowPosition};
 use petlauncher_core::{Action, Desktop, DesktopError, FolderOpened, KeptUntil, SystemCommand};
 
 use crate::file_manager;
@@ -21,6 +22,10 @@ pub const TRAY_ICON_ACTION: &str = "tray-icon";
 /// when the next show of the launcher has the kept query of R9 (ADR 0009).
 pub const KEPT_QUERY_ACTION: &str = "kept-query-until";
 
+/// The name of the action whose state gives the GNOME Shell extension the
+/// setting `window_position` (ADR 0009).
+pub const WINDOW_POSITION_ACTION: &str = "window-position";
+
 /// The GNOME desktop: the session bus, the system bus, the custom shortcuts
 /// in GSettings, and the actions that the extension reads. Make it on the
 /// thread of the user interface.
@@ -31,6 +36,7 @@ pub struct GnomeDesktop {
     launch_context: RefCell<Option<gio::AppLaunchContext>>,
     tray_icon: gio::SimpleAction,
     kept_query: gio::SimpleAction,
+    window_position: gio::SimpleAction,
 }
 
 impl GnomeDesktop {
@@ -59,6 +65,12 @@ impl GnomeDesktop {
         let kept_query =
             gio::SimpleAction::new_stateful(KEPT_QUERY_ACTION, None, &0i64.to_variant());
         kept_query.set_enabled(false);
+        let window_position = gio::SimpleAction::new_stateful(
+            WINDOW_POSITION_ACTION,
+            None,
+            &("center", 0.0, 0.0).to_variant(),
+        );
+        window_position.set_enabled(false);
         Self {
             session_bus,
             system_bus: system_bus.map(OnceCell::from).unwrap_or_default(),
@@ -66,6 +78,7 @@ impl GnomeDesktop {
             launch_context: RefCell::new(None),
             tray_icon,
             kept_query,
+            window_position,
         }
     }
 
@@ -83,13 +96,26 @@ impl GnomeDesktop {
         self.shortcuts.as_ref().map_err(Clone::clone)
     }
 
-    /// Adds the actions `tray-icon` and `kept-query-until` to the
-    /// application, so that the GNOME Shell extension can read them.
-    /// `set_tray_icon_visible` and `set_kept_query_until` change their
-    /// states. Call it one time, for example in the `startup` signal.
+    /// Adds the actions `tray-icon`, `kept-query-until` and
+    /// `window-position` to the application, so that the GNOME Shell
+    /// extension can read them. The `set_` methods change their states.
+    /// Call it one time, for example in the `startup` signal.
     pub fn add_actions(&self, actions: &impl IsA<gio::ActionMap>) {
         actions.add_action(&self.tray_icon);
         actions.add_action(&self.kept_query);
+        actions.add_action(&self.window_position);
+    }
+
+    /// The state of `window-position`: the name of the setting and the
+    /// place of `custom`, as fractions of the work area. Set it after each
+    /// change of the settings.
+    pub fn set_window_position(&self, position: WindowPosition, custom: Option<CustomPosition>) {
+        let state = match (position, custom) {
+            (WindowPosition::Custom, Some(place)) => ("custom", place.x, place.y),
+            (WindowPosition::Custom, None) => ("center", 0.0, 0.0),
+            (position, _) => (position.name(), 0.0, 0.0),
+        };
+        self.window_position.set_state(&state.to_variant());
     }
 
     /// The state of `kept-query-until`: the wall-clock time in microseconds

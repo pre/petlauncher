@@ -22,7 +22,8 @@ pub use edit::{SettingsEditor, ShortcutsEditor};
 pub use error::{ConfigError, EditError};
 pub use load::{load_settings, load_shortcuts};
 pub use model::{
-    Browser, Dictionary, FileSearch, KeepQuery, ParseKeepQueryError, Settings, Shortcut,
+    Browser, CustomPosition, Dictionary, FileSearch, KeepQuery, ParseKeepQueryError, Settings,
+    Shortcut, WindowPosition,
 };
 pub use paths::{config_dir, ConfigFile};
 pub use store::{ConfigStore, Reload};

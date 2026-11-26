@@ -21,12 +21,15 @@ const SETTINGS_KEYS: &[&str] = &[
     "include_applications",
     "hotkey",
     "window_width",
+    "window_position",
+    "custom_position",
     "keep_query",
     "file_search",
     "dictionary",
 ];
 const FILE_SEARCH_KEYS: &[&str] = &["keyword", "directories", "ignore"];
 const DICTIONARY_KEYS: &[&str] = &["keyword", "wordnet_path"];
+const CUSTOM_POSITION_KEYS: &[&str] = &["x", "y"];
 const SHORTCUTS_KEYS: &[&str] = &["shortcut"];
 const SHORTCUT_KEYS: &[&str] = &[
     "name",
@@ -199,6 +202,8 @@ fn line_of_problem(document: &Document<String>, problem: &Problem) -> Option<usi
     };
     let span = match &problem.kind {
         ProblemKind::WindowWidthOutOfRange { .. } => root.get("window_width").and_then(Item::span),
+        ProblemKind::CustomPositionOutOfRange => root.get("custom_position").and_then(Item::span),
+        ProblemKind::NoCustomPosition => root.get("window_position").and_then(Item::span),
         ProblemKind::EmptyKeyword { owner } | ProblemKind::KeywordWithSpace { owner, .. } => {
             match owner {
                 KeywordOwner::BuiltIn(BuiltIn::FileSearch) => value_span("file_search", "keyword"),
@@ -223,6 +228,7 @@ fn unknown_keys(document: &Document<String>, file: ConfigFile) -> Vec<Problem> {
             for (table, keys) in [
                 ("file_search", FILE_SEARCH_KEYS),
                 ("dictionary", DICTIONARY_KEYS),
+                ("custom_position", CUSTOM_POSITION_KEYS),
             ] {
                 if let Some(child) = root.get(table).and_then(Item::as_table_like) {
                     unknown_keys_in(child, keys, &format!("{table}."), &mut found);

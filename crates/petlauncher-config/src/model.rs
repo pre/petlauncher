@@ -16,6 +16,10 @@ pub struct Settings {
     /// `<Super>space`.
     pub hotkey: String,
     pub window_width: u32,
+    pub window_position: WindowPosition,
+    /// The place of `WindowPosition::Custom`.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub custom_position: Option<CustomPosition>,
     pub keep_query: KeepQuery,
     pub file_search: FileSearch,
     pub dictionary: Dictionary,
@@ -30,11 +34,52 @@ impl Default for Settings {
             include_applications: true,
             hotkey: "<Super>space".to_owned(),
             window_width: 750,
+            window_position: WindowPosition::Center,
+            custom_position: None,
             keep_query: KeepQuery::Seconds(30),
             file_search: FileSearch::default(),
             dictionary: Dictionary::default(),
         }
     }
+}
+
+/// The place of the launcher window when it opens with no kept query, on the
+/// monitor with the pointer (ADR 0009). The GNOME Shell extension puts the
+/// window there.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum WindowPosition {
+    /// The query line at the vertical center of the work area.
+    Center,
+    UpperThird,
+    /// Below the top bar.
+    Top,
+    /// The place in `custom_position`.
+    Custom,
+}
+
+impl WindowPosition {
+    /// The text in `settings.toml`, for example `upper-third`.
+    pub fn name(self) -> &'static str {
+        match self {
+            Self::Center => "center",
+            Self::UpperThird => "upper-third",
+            Self::Top => "top",
+            Self::Custom => "custom",
+        }
+    }
+}
+
+/// A place that the owner pinned, as fractions of the work area of the
+/// monitor, so that it fits each monitor.
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+pub struct CustomPosition {
+    /// The horizontal center of the window: 0 is the left edge of the work
+    /// area, 1 the right edge.
+    pub x: f64,
+    /// The top of the query line: 0 is the top of the work area, 1 the
+    /// bottom.
+    pub y: f64,
 }
 
 /// How long the query stays after the window closes.

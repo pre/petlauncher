@@ -3,7 +3,8 @@
 use std::fs;
 
 use petlauncher_config::{
-    load_settings, Browser, ConfigFile, ConfigStore, KeepQuery, Reload, Settings, Shortcut,
+    load_settings, Browser, ConfigFile, ConfigStore, CustomPosition, KeepQuery, ProblemKind,
+    Reload, Settings, Shortcut, WindowPosition,
 };
 
 const OWNER_SETTINGS: &str = r#"# The owner's settings, with comments.
@@ -116,4 +117,66 @@ fn r9_each_form_of_the_keep_query_time_goes_through_the_file() {
             value
         );
     }
+}
+
+/// The position of the launcher: the fixed places, and a pinned place that
+/// the settings window writes with the setting "custom".
+#[test]
+fn the_window_position_and_a_pinned_place_go_through_the_file() {
+    let dir = tempfile::tempdir().expect("temporary directory");
+    let mut store = ConfigStore::open(dir.path());
+    assert_eq!(store.settings().window_position, WindowPosition::Center);
+    assert_eq!(store.settings().custom_position, None);
+
+    store
+        .edit_settings(|editor| editor.set_window_position(WindowPosition::UpperThird))
+        .expect("edit");
+    let upper_third = load_settings(dir.path()).expect("settings");
+    store
+        .edit_settings(|editor| editor.pin_position(CustomPosition { x: 0.25, y: 0.125 }))
+        .expect("edit");
+    let pinned = load_settings(dir.path()).expect("settings");
+    let text = fs::read_to_string(ConfigFile::Settings.path_in(dir.path())).expect("read");
+
+    assert_eq!(upper_third.window_position, WindowPosition::UpperThird);
+    assert_eq!(pinned.window_position, WindowPosition::Custom);
+    assert_eq!(
+        pinned.custom_position,
+        Some(CustomPosition { x: 0.25, y: 0.125 })
+    );
+    assert!(text.contains("window_position = \"custom\"\n"), "{text}");
+    assert!(
+        text.contains("custom_position = { x = 0.25, y = 0.125 }\n"),
+        "{text}"
+    );
+}
+
+#[test]
+fn a_custom_place_out_of_the_work_area_is_an_error_and_custom_with_no_place_a_warning() {
+    let dir = tempfile::tempdir().expect("temporary directory");
+    let path = ConfigFile::Settings.path_in(dir.path());
+    fs::write(&path, "custom_position = { x = 1.5, y = 0.2 }\n").expect("write");
+    let store = ConfigStore::open(dir.path());
+    let error = store
+        .error(ConfigFile::Settings)
+        .expect("an error")
+        .to_string();
+    fs::write(&path, "window_position = \"custom\"\n").expect("write");
+    let store = ConfigStore::open(dir.path());
+    let warnings: Vec<ProblemKind> = store
+        .warnings()
+        .into_iter()
+        .map(|problem| problem.kind)
+        .collect();
+    fs::write(&path, "window_position = \"middle\"\n").expect("write");
+    let store = ConfigStore::open(dir.path());
+    let wrong_name = store
+        .error(ConfigFile::Settings)
+        .expect("an error")
+        .to_string();
+
+    assert!(error.contains("custom_position"), "{error}");
+    assert!(error.contains(":1:"), "{error}");
+    assert_eq!(warnings, [ProblemKind::NoCustomPosition]);
+    assert!(wrong_name.contains("middle"), "{wrong_name}");
 }

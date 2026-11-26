@@ -1,7 +1,7 @@
 {
   "uuid": "petlauncher@repo.pet",
   "name": "petlauncher",
-  "description": "Shows the petlauncher window at the center of the monitor with the pointer, and shows the petlauncher icon in the top bar.",
+  "description": "Shows the petlauncher window on the monitor with the pointer, at the place of its setting, and shows the petlauncher icon in the top bar.",
   "shell-version": ["46"],
   "url": "https://github.com/pre/petlauncher"
 }

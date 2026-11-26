@@ -10,7 +10,7 @@
 use std::fmt;
 use std::ops::RangeInclusive;
 
-use crate::model::{Settings, Shortcut};
+use crate::model::{Settings, Shortcut, WindowPosition};
 use crate::paths::ConfigFile;
 
 /// The permitted values of `window_width`, in pixels.
@@ -36,6 +36,11 @@ pub struct Problem {
 pub enum ProblemKind {
     /// Error: `window_width` is not in [`WINDOW_WIDTH`].
     WindowWidthOutOfRange { width: u32 },
+    /// Error: `custom_position` has a value that is not from 0 to 1.
+    CustomPositionOutOfRange,
+    /// Warning: `window_position` is `custom`, but the file has no
+    /// `custom_position`. The window opens at the center.
+    NoCustomPosition,
     /// Error: a keyword is empty.
     EmptyKeyword { owner: KeywordOwner },
     /// Error: a keyword contains a space, a tab or a line end. The query
@@ -89,11 +94,13 @@ impl ProblemKind {
     pub fn severity(&self) -> Severity {
         match self {
             Self::WindowWidthOutOfRange { .. }
+            | Self::CustomPositionOutOfRange
             | Self::EmptyKeyword { .. }
             | Self::KeywordWithSpace { .. } => Severity::Error,
             Self::DuplicateKeyword { .. }
             | Self::KeywordOfBuiltIn { .. }
             | Self::SameBuiltInKeyword { .. }
+            | Self::NoCustomPosition
             | Self::UnknownKey { .. } => Severity::Warning,
         }
     }
@@ -125,6 +132,19 @@ pub fn validate_settings(settings: &Settings) -> Vec<Problem> {
         kinds.push(ProblemKind::WindowWidthOutOfRange {
             width: settings.window_width,
         });
+    }
+    match settings.custom_position {
+        Some(place)
+            if ![place.x, place.y]
+                .iter()
+                .all(|value| (0.0..=1.0).contains(value)) =>
+        {
+            kinds.push(ProblemKind::CustomPositionOutOfRange);
+        }
+        None if settings.window_position == WindowPosition::Custom => {
+            kinds.push(ProblemKind::NoCustomPosition);
+        }
+        _ => {}
     }
     let file_search = &settings.file_search.keyword;
     let dictionary = &settings.dictionary.keyword;
@@ -259,6 +279,14 @@ impl fmt::Display for ProblemKind {
                 "window_width {width} is not from {} to {}",
                 WINDOW_WIDTH.start(),
                 WINDOW_WIDTH.end()
+            ),
+            Self::CustomPositionOutOfRange => {
+                write!(f, "custom_position has a value that is not from 0 to 1")
+            }
+            Self::NoCustomPosition => write!(
+                f,
+                "window_position is \"custom\", but there is no custom_position, so the window \
+                 opens at the center"
             ),
             Self::EmptyKeyword { owner } => write!(f, "the keyword of {owner} is empty"),
             Self::KeywordWithSpace { owner, keyword } => {

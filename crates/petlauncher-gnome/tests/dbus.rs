@@ -8,8 +8,11 @@ use std::path::Path;
 use gio::prelude::*;
 use std::time::{Duration, SystemTime};
 
+use petlauncher_core::config::{CustomPosition, WindowPosition};
 use petlauncher_core::{Action, Desktop, DesktopError, FolderOpened, KeptUntil, SystemCommand};
-use petlauncher_gnome::{Executed, GnomeDesktop, KEPT_QUERY_ACTION, TRAY_ICON_ACTION};
+use petlauncher_gnome::{
+    Executed, GnomeDesktop, KEPT_QUERY_ACTION, TRAY_ICON_ACTION, WINDOW_POSITION_ACTION,
+};
 use support::{MockService, PrivateBus, Reply};
 
 fn desktop(session: &PrivateBus, system: &PrivateBus) -> GnomeDesktop {
@@ -277,6 +280,32 @@ fn the_kept_query_action_is_disabled_and_gives_the_time_in_microseconds() {
     assert_eq!(forever, Some((-1i64).to_variant()));
     assert_eq!(nothing, Some(0i64.to_variant()));
     assert!(!actions.is_action_enabled(KEPT_QUERY_ACTION));
+}
+
+/// ADR 0009: the name of the position and the place of `custom`. The
+/// setting `custom` with no place is the center.
+#[test]
+fn the_window_position_action_gives_the_position_and_the_custom_place() {
+    let (session, system) = (PrivateBus::start(), PrivateBus::start());
+    let desktop = desktop(&session, &system);
+    let actions = gio::SimpleActionGroup::new();
+    desktop.add_actions(&actions);
+    let place = CustomPosition { x: 0.25, y: 0.125 };
+    let state = |position, custom| {
+        desktop.set_window_position(position, custom);
+        actions.action_state(WINDOW_POSITION_ACTION)
+    };
+
+    let start = actions.action_state(WINDOW_POSITION_ACTION);
+    let top = state(WindowPosition::Top, Some(place));
+    let custom = state(WindowPosition::Custom, Some(place));
+    let no_place = state(WindowPosition::Custom, None);
+
+    assert_eq!(start, Some(("center", 0.0, 0.0).to_variant()));
+    assert_eq!(top, Some(("top", 0.0, 0.0).to_variant()));
+    assert_eq!(custom, Some(("custom", 0.25, 0.125).to_variant()));
+    assert_eq!(no_place, Some(("center", 0.0, 0.0).to_variant()));
+    assert!(!actions.is_action_enabled(WINDOW_POSITION_ACTION));
 }
 
 /// The extension reads the state with `org.gtk.Actions` (ADR 0005).

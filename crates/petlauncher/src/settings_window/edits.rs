@@ -4,7 +4,9 @@
 
 use std::path::Path;
 
-use petlauncher_config::{EditError, KeepQuery, SettingsEditor, Shortcut, ShortcutsEditor};
+use petlauncher_config::{
+    EditError, KeepQuery, SettingsEditor, Shortcut, ShortcutsEditor, WindowPosition,
+};
 use petlauncher_index::IgnoreEntry;
 
 /// A change of `settings.toml`.
@@ -15,6 +17,7 @@ pub enum SettingsEdit {
     ShowTrayIcon(bool),
     IncludeApplications(bool),
     WindowWidth(u32),
+    WindowPosition(WindowPosition),
     KeepQuery(KeepQuery),
     FileSearchKeyword(String),
     AddDirectory(String),
@@ -34,6 +37,7 @@ impl SettingsEdit {
             Self::ShowTrayIcon(value) => editor.set_show_tray_icon(*value),
             Self::IncludeApplications(value) => editor.set_include_applications(*value),
             Self::WindowWidth(value) => editor.set_window_width(*value),
+            Self::WindowPosition(value) => editor.set_window_position(*value),
             Self::KeepQuery(value) => editor.set_keep_query(*value),
             Self::FileSearchKeyword(value) => editor.set_file_search_keyword(value),
             Self::AddDirectory(value) => {

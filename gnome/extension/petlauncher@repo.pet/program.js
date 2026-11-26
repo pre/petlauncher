@@ -24,8 +24,12 @@ export class ProgramActions {
         this._disconnect();
     }
 
-    activate(name) {
-        this._actions?.activate_action(name, null);
+    /**
+     * @param {string} name - the name of the action
+     * @param {GLib.Variant|null} parameter - the parameter of the action
+     */
+    activate(name, parameter = null) {
+        this._actions?.activate_action(name, parameter);
     }
 
     /**
@@ -36,7 +40,7 @@ export class ProgramActions {
     state(name) {
         if (!this._actions?.has_action(name))
             return null;
-        return this._actions.get_action_state(name)?.unpack() ?? null;
+        return this._actions.get_action_state(name)?.recursiveUnpack() ?? null;
     }
 
     _connect(owner) {
