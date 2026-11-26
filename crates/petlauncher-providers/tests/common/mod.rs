@@ -23,7 +23,7 @@ use tempfile::TempDir;
 pub const NOW: &str = "2026-11-26T18:04[Europe/Helsinki]";
 
 pub const PALETTE_ZOOM: &str =
-    "daybook-evidence/kukka/font-size-keys-palette/screenshots-final/palette-zoom.png";
+    "lolcat-evidence/kukka/font-size-keys-palette/screenshots-final/palette-zoom.png";
 
 /// Rates of the day before `NOW`.
 pub const OLD_RATES_DATE: &str = "2026-11-25";
@@ -170,7 +170,7 @@ impl Fixture {
     fn write_file_tree(&self) {
         for relative in [
             PALETTE_ZOOM,
-            "daybook-evidence/kukka/font-size-keys-palette/screenshots-final/palette-small.png",
+            "lolcat-evidence/kukka/font-size-keys-palette/screenshots-final/palette-small.png",
             "tmp/palette-zoom-in-tmp.png",
             "go/pkg/mod/palette-zoom-in-go.png",
             "dev/project/README.md",

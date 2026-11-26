@@ -30,7 +30,7 @@ fn r21_an_added_ignore_path_is_in_the_file_and_the_comments_stay() {
 
     store
         .edit_settings(|editor| {
-            editor.add_ignore("~/daybook-evidence");
+            editor.add_ignore("~/lolcat-evidence");
         })
         .expect("edit");
 
@@ -42,12 +42,12 @@ fn r21_an_added_ignore_path_is_in_the_file_and_the_comments_stay() {
             "line {old_line:?} is not in:\n{text}"
         );
     }
-    assert!(text.contains("    \"~/daybook-evidence\",\n"), "{text}");
+    assert!(text.contains("    \"~/lolcat-evidence\",\n"), "{text}");
     assert!(store
         .settings()
         .file_search
         .ignore
-        .contains(&"~/daybook-evidence".to_owned()));
+        .contains(&"~/lolcat-evidence".to_owned()));
 }
 
 /// R3, R5, R9, R14: the initial values with no settings file.

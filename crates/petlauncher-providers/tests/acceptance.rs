@@ -453,7 +453,7 @@ fn r21_an_added_ignore_path_removes_the_file_and_keeps_the_comments() {
     // Step 2.
     launcher
         .edit_settings(|editor| {
-            editor.add_ignore("~/daybook-evidence");
+            editor.add_ignore("~/lolcat-evidence");
         })
         .unwrap();
     // Step 3.
@@ -464,7 +464,7 @@ fn r21_an_added_ignore_path_removes_the_file_and_keeps_the_comments() {
     assert!(after.rows.is_empty(), "{:?}", titles(&after));
     // Step 4.
     let text = fs::read_to_string(fixture.dirs.config.join("settings.toml")).unwrap();
-    assert!(text.contains("\"~/daybook-evidence\""), "{text}");
+    assert!(text.contains("\"~/lolcat-evidence\""), "{text}");
     for line in original.lines().filter(|line| line.contains('#')) {
         assert!(text.contains(line), "{line:?} is not in:\n{text}");
     }
@@ -472,7 +472,7 @@ fn r21_an_added_ignore_path_removes_the_file_and_keeps_the_comments() {
         .settings()
         .file_search
         .ignore
-        .contains(&"~/daybook-evidence".to_owned()));
+        .contains(&"~/lolcat-evidence".to_owned()));
 }
 
 // R16: Enter on `lock` locks the screen. Clocks also matches `lock`, inside

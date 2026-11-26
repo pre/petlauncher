@@ -101,7 +101,7 @@ gnome/extension/test/nested-test.sh --program target/release/petlauncher \
 
 ### Results
 
-Environment: GNOME Shell 46.0, GTK 4.14.5, libadwaita 1.5.0, Ubuntu 24.04, release build, monitors 3008x1692 and 1920x1200 at scale 1, on 2026-11-26. Raw evidence: `~/daybook-evidence/petlauncher/ui/2026-11-26-settings-window/` on the owner's computer, with `acceptance.tsv`, the AT-SPI trees (`a11y-*.txt`), the key files and the settings files of the steps, the program log and the screenshots.
+Environment: GNOME Shell 46.0, GTK 4.14.5, libadwaita 1.5.0, Ubuntu 24.04, release build, monitors 3008x1692 and 1920x1200 at scale 1, on 2026-11-26. The evidence directory of the run is not in the repository. It has `acceptance.tsv`, the AT-SPI trees (`a11y-*.txt`), the key files and the settings files of the steps, the program log and the screenshots.
 
 - 76 checks, 76 pass: Ctrl+comma; R4 (the two conflicts, Remove on each, Set, the key file, the marker file, the notice in the launcher, a captured key, a wrong text, Remove Key, a typed key); R9 step 8; R3 (the four switches with their effect, and the autostart file); R5; R21 steps 1 to 4, a bad pattern and Remove; R19 (the state of the data and a missing folder); R12; R7 steps 1 and 2 with a shortcut of the window, and the checks at the fields; R6 (move and remove); R18 (a change in an editor, an error and its correction); an inline list and an error in `shortcuts.toml`; the stop rule.
 - R4: before the first write, the GSettings backend was the key file of the test. After the two Remove buttons, the custom shortcut of the invented program had its entry with `binding=''`, and the input source switch had `['XF86Keyboard']`.

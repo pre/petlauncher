@@ -14,7 +14,7 @@ use petlauncher_index::store::{self, LoadError, FILE_NAME};
 use petlauncher_index::{FileIndex, Scope, ScopeError};
 
 const PALETTE_ZOOM: &str =
-    "daybook-evidence/kukka/font-size-keys-palette/screenshots-final/palette-zoom.png";
+    "lolcat-evidence/kukka/font-size-keys-palette/screenshots-final/palette-zoom.png";
 
 fn cache_dir(tree: &Tree) -> PathBuf {
     tree.path(".cache/petlauncher")
@@ -96,7 +96,7 @@ fn r21_an_added_ignore_path_removes_the_file_from_the_results_immediately() {
     let index = scanned(&tree, tree.scope(&INITIAL_IGNORE));
     let found_before = index.search("palette-zoom", 10);
     let mut ignore = INITIAL_IGNORE.to_vec();
-    ignore.push("~/daybook-evidence");
+    ignore.push("~/lolcat-evidence");
 
     let changed = index.set_scope(tree.scope(&ignore));
     index.wait();

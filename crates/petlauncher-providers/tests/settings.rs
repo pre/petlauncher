@@ -95,7 +95,7 @@ fn r21_a_reload_with_a_new_ignore_entry_updates_the_index_immediately() {
     let launcher = fixture.start();
     fixture.write_settings(&settings(
         &fixture,
-        "[file_search]\nignore = [\"~/tmp\", \"~/go/pkg/mod\", \"daybook-evidence\"]",
+        "[file_search]\nignore = [\"~/tmp\", \"~/go/pkg/mod\", \"lolcat-evidence\"]",
     ));
 
     launcher.reload(ConfigFile::Settings);

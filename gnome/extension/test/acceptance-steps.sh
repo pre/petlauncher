@@ -11,7 +11,7 @@
 
 l0l3=$HOME/lolcat-output/L0L3-IMAGE
 newest=$l0l3/image-003.png
-palette=$HOME/daybook-evidence/kukka/font-size-keys-palette/screenshots-final/palette-zoom.png
+palette=$HOME/lolcat-evidence/kukka/font-size-keys-palette/screenshots-final/palette-zoom.png
 
 # ----------------------------------------------------------------- R1
 
@@ -223,7 +223,7 @@ sleep 0.8
 expect "ShowItems of the file" mock-calls.jsonl mock_call ShowItems "/screenshots-final/palette-zoom.png"
 
 begin R10.5
-query "~/daybook-evidence/kukka/font-size-keys-palette/screenshots-final/palette-zoom.png"
+query "~/lolcat-evidence/kukka/font-size-keys-palette/screenshots-final/palette-zoom.png"
 expect "the ~ form gives the same row" "$log_file" rows_have ": 1, selected Some(0): palette-zoom.png"
 keys Return
 expect "the file opens" launches.log launched "viewer | $palette"

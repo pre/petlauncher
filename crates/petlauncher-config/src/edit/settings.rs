@@ -291,15 +291,12 @@ ignore = [
     fn adds_an_ignore_path_and_keeps_the_comments() {
         let mut editor = owner_editor();
 
-        let added = editor.add_ignore("~/daybook-evidence");
+        let added = editor.add_ignore("~/lolcat-evidence");
 
         assert!(added);
         assert_eq!(
             editor.text(),
-            OWNER_TEXT.replace(
-                "# my TMPDIR\n",
-                "# my TMPDIR\n    \"~/daybook-evidence\",\n"
-            )
+            OWNER_TEXT.replace("# my TMPDIR\n", "# my TMPDIR\n    \"~/lolcat-evidence\",\n")
         );
     }
 

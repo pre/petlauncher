@@ -482,14 +482,14 @@ hide_launcher
 begin R21-step-2
 page Search
 cp "$config/settings.toml" "$OUT/settings-before-r21.toml"
-fill text 'Add a path, a name or a pattern' '~/daybook-evidence'
+fill text 'Add a path, a name or a pattern' '~/lolcat-evidence'
 keys Return
 sleep 1.5
 cp "$config/settings.toml" "$OUT/settings-after-r21.toml"
 diff "$OUT/settings-before-r21.toml" "$OUT/settings-after-r21.toml" >"$OUT/settings-r21.diff" || true
 tree r21-added
 shot settings-r21-added
-expect "the window shows the new entry" a11y-r21-added.txt tree_has "label '~/daybook-evidence'"
+expect "the window shows the new entry" a11y-r21-added.txt tree_has "label '~/lolcat-evidence'"
 begin R21-step-3
 query 'f palette-zoom'
 sleep 0.5
@@ -498,7 +498,7 @@ expect "f palette-zoom does not find the file" app-program.log rows_lack 'palett
 hide_launcher
 begin R21-step-4
 expect "settings.toml contains the new path" settings-after-r21.toml \
-    grep -qF '"~/daybook-evidence"' "$OUT/settings-after-r21.toml"
+    grep -qF '"~/lolcat-evidence"' "$OUT/settings-after-r21.toml"
 expect "the comments of settings.toml are not changed" settings-r21.diff \
     diff <(grep '#' "$OUT/settings-before-r21.toml") <(grep '#' "$OUT/settings-after-r21.toml")
 begin R21-bad-pattern
@@ -511,10 +511,10 @@ expect "a bad pattern shows its error" a11y-r21-bad-pattern.txt \
 expect "a bad pattern is not saved" settings.toml eval "! settings_has '[abc'"
 keys Control_L+a BackSpace
 begin R21-remove
-click_remove_of '~/daybook-evidence'
+click_remove_of '~/lolcat-evidence'
 sleep 1.5
 expect "Remove takes the entry from settings.toml" settings.toml \
-    eval "! settings_has '~/daybook-evidence'"
+    eval "! settings_has '~/lolcat-evidence'"
 query 'f palette-zoom'
 expect "f palette-zoom finds the file again" app-program.log rows_have 'palette-zoom.png'
 hide_launcher

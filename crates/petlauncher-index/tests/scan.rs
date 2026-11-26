@@ -113,11 +113,11 @@ fn name_and_pattern_entries_do_not_skip_files() {
 #[test]
 fn an_added_path_entry_removes_that_directory() {
     let tree = Tree::new();
-    tree.files(&["daybook-evidence/a.png", "daybook/b.md"]);
+    tree.files(&["lolcat-evidence/a.png", "lolcat/b.md"]);
 
-    let paths = tree.scan_paths(&["~/daybook-evidence"]);
+    let paths = tree.scan_paths(&["~/lolcat-evidence"]);
 
-    assert_eq!(paths, set(&["daybook/", "daybook/b.md"]));
+    assert_eq!(paths, set(&["lolcat/", "lolcat/b.md"]));
 }
 
 #[test]
@@ -318,7 +318,7 @@ fn an_empty_root_list_gives_an_empty_index() {
 fn r14_finds_palette_zoom_and_nothing_below_tmp_or_the_go_module_cache() {
     let tree = Tree::new();
     tree.files(&[
-        "daybook-evidence/kukka/font-size-keys-palette/screenshots-final/palette-zoom.png",
+        "lolcat-evidence/kukka/font-size-keys-palette/screenshots-final/palette-zoom.png",
         "tmp/kukka/palette-zoom.png",
         "go/pkg/mod/github.com/x/palette-zoom.png",
         "tmp/go/pkg/mod/palette-zoom.png",
@@ -331,7 +331,7 @@ fn r14_finds_palette_zoom_and_nothing_below_tmp_or_the_go_module_cache() {
     assert_eq!(
         hits[0].path,
         tree.path(
-            "daybook-evidence/kukka/font-size-keys-palette/screenshots-final/palette-zoom.png"
+            "lolcat-evidence/kukka/font-size-keys-palette/screenshots-final/palette-zoom.png"
         )
     );
 }

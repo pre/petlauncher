@@ -34,7 +34,7 @@ const WORDS: &[&str] = &[
     "forge",
     "rektangel",
     "kukka",
-    "daybook",
+    "lolcat",
     "evidence",
     "petlauncher",
     "index",

@@ -137,10 +137,7 @@ The test with `--owner-layout` uses the layout of the owner's monitors: 6016x338
 
 Environment: GNOME Shell 46.0, Mutter 46.2, gjs 1.80.2, GTK 4.14.5, Ubuntu 24.04, on 2026-11-26.
 
-Raw evidence on the owner's computer, one directory for each run, each with `summary.txt` (the output of `analyse.sh`), `events.json` (the probe records), a `state-<step>.json` for each step, screenshots and the logs:
-
-- `~/daybook-evidence/petlauncher/ui/`: the runs with the current position rule and the stand-in at 750x64, in `2026-11-26-stand-in-logical-sizes`, `2026-11-26-stand-in-owner-layout`, `2026-11-26-stand-in-no-animations` and `2026-11-26-stand-in-no-extension`. The runs of the real program are in the same directory ([program.md](program.md)).
-- `~/daybook-evidence/petlauncher/ext/`: the first runs of the extension, with a rule that centered the full height of the window and a stand-in at 750x48. The nested shell trial is in `nested-x11-trial/`.
+Each run writes one evidence directory, with `summary.txt` (the output of `analyse.sh`), `events.json` (the probe records), a `state-<step>.json` for each step, screenshots and the logs. The evidence directories of the runs below are not in the repository. The first runs of the extension had a rule that centered the full height of the window, with a stand-in at 750x48. The later runs have the current position rule and a stand-in at 750x64. The runs of the real program are in [program.md](program.md).
 
 Positions are `x,y` of the top left corner of the window frame, in logical pixels. In the default run the monitors are 0: `0,0 3008x1692` (work area from y 32, below the top bar) and 1: `3008,0 1920x1200`. The stand-in launcher is 750x64, and 750x364 with results.
 

@@ -83,7 +83,7 @@ ignore = [
     "~/tmp",
     "git-worktrees",
     "*-wt",
-    "~/daybook-evidence",   # too many files
+    "~/lolcat-evidence",   # too many files
 ]
 
 [dictionary]

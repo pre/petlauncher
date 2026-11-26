@@ -167,7 +167,7 @@ file lolcat-output/single/only.png "2026-02-01 08:00"
 
 # R10 and R14: the file of the requirements, and files that the ignore list
 # of the file search removes.
-file daybook-evidence/kukka/font-size-keys-palette/screenshots-final/palette-zoom.png "2026-03-01 10:00"
-file daybook-evidence/kukka/font-size-keys-palette/screenshots-final/palette-small.png "2026-03-01 09:00"
+file lolcat-evidence/kukka/font-size-keys-palette/screenshots-final/palette-zoom.png "2026-03-01 10:00"
+file lolcat-evidence/kukka/font-size-keys-palette/screenshots-final/palette-small.png "2026-03-01 09:00"
 file tmp/palette-zoom-in-tmp.png "2026-03-01 10:00"
 file go/pkg/mod/palette-zoom-in-gomod.png "2026-03-01 10:00"

@@ -180,8 +180,6 @@ These changes of `petlauncher-core` came with this crate:
 
 ## Evidence
 
-Raw evidence: `~/daybook-evidence/petlauncher/gnome/` on the owner's computer.
-
 | File | Contents |
 |---|---|
 | `introspection/FileManager1.txt` | `gdbus introspect` of `org.freedesktop.FileManager1` (Nautilus 46.4) |

@@ -9,7 +9,7 @@ use petlauncher_core::{activate, Action, Key, Slot};
 fn r13_acceptance_shift_enter_on_the_row_of_a_pasted_path_copies_the_full_path_and_closes() {
     let home = TempHome::new();
     let file = home.file(
-        "daybook-evidence/kukka/font-size-keys-palette/screenshots-final/palette-zoom.png",
+        "lolcat-evidence/kukka/font-size-keys-palette/screenshots-final/palette-zoom.png",
         1,
     );
     let engine = home.engine();

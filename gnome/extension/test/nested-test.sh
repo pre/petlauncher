@@ -9,7 +9,8 @@
 #
 # Usage: nested-test.sh [--out DIR] [--owner-layout] [--no-animations]
 #                       [--no-extension] [--program PATH [--steps FILE]]
-#   --out DIR         Evidence directory (logs, JSON, screenshots).
+#   --out DIR         Evidence directory (logs, JSON, screenshots). Default: a new
+#                     directory in ~/.cache/petlauncher-test/.
 #   --program PATH    Test the real petlauncher binary at PATH with the steps
 #                     of program-steps.sh, in place of fake-petlauncher.js.
 #                     The program gets its own settings directory and a tree
@@ -29,7 +30,7 @@ here=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 uuid=petlauncher@repo.pet
 
 if [[ "${1:-}" != --inner ]]; then
-    out="$HOME/daybook-evidence/petlauncher/ext/run-$(date +%Y%m%d-%H%M%S)"
+    out="${XDG_CACHE_HOME:-$HOME/.cache}/petlauncher-test/run-$(date +%Y%m%d-%H%M%S)"
     monitors="3008x1692 1920x1200"
     layout=""
     extension=on

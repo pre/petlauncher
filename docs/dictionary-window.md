@@ -125,7 +125,7 @@ PETLAUNCHER_WORDNET_PATH=DIR gnome/extension/test/nested-test.sh \
 
 ### Results
 
-Environment: GNOME Shell 46.0, GTK 4.14.5, libadwaita 1.5.0, monitors 3008x1692 and 1920x1200 at scale 1, on 2026-11-26. The program had a stand-in for the dictionary rows of `petlauncher-providers`, because the launcher of this branch has no dictionary provider. Raw evidence: `~/daybook-evidence/petlauncher/dictwin/2026-11-26-dictionary-window/` on the owner's computer.
+Environment: GNOME Shell 46.0, GTK 4.14.5, libadwaita 1.5.0, monitors 3008x1692 and 1920x1200 at scale 1, on 2026-11-26. The program had a stand-in for the dictionary rows of `petlauncher-providers`, because the launcher of this branch has no dictionary provider. The evidence directory of the run is not in the repository.
 
 - R19 step 3: `d launcher` and Enter opened the window with "launcher", and the launcher hid. The dictionary window had the focus.
 - R19 step 4: a drag over the first definition and Ctrl+C put `armament in the form of a device capable of launching a rocket` on the clipboard. A drag from the definition to the synonym gave the definition, an empty line and `Synonyms  rocket launcher`.

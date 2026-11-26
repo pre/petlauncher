@@ -7,7 +7,7 @@ use std::path::PathBuf;
 use common::{search, titles, TempHome};
 use petlauncher_core::{activate, Action, Engine, Key, Results, TypedPath};
 
-const FOLDER: &str = "daybook-evidence/kukka/font-size-keys-palette/screenshots-final";
+const FOLDER: &str = "lolcat-evidence/kukka/font-size-keys-palette/screenshots-final";
 
 /// The folder of the R10 example with seven `.png` files.
 struct Screenshots {

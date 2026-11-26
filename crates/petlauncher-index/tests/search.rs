@@ -39,8 +39,8 @@ fn paths(hits: Vec<FileEntry>) -> Vec<String> {
 #[test]
 fn finds_palette_zoom_png_by_the_text_palette_zoom() {
     let index = index(vec![
-        file("/h/daybook-evidence/kukka/screenshots-final/palette-zoom.png"),
-        file("/h/daybook-evidence/kukka/screenshots-final/palette-overview.png"),
+        file("/h/lolcat-evidence/kukka/screenshots-final/palette-zoom.png"),
+        file("/h/lolcat-evidence/kukka/screenshots-final/palette-overview.png"),
         file("/h/dev/zoom.rs"),
     ]);
 
@@ -48,7 +48,7 @@ fn finds_palette_zoom_png_by_the_text_palette_zoom() {
 
     assert_eq!(
         paths(hits),
-        ["/h/daybook-evidence/kukka/screenshots-final/palette-zoom.png"]
+        ["/h/lolcat-evidence/kukka/screenshots-final/palette-zoom.png"]
     );
 }
 
