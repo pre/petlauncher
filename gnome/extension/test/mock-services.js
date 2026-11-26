@@ -85,10 +85,12 @@ const exported = [];
 let waiting = SERVICES[bus].length;
 for (const service of SERVICES[bus]) {
     const object = {};
-    for (const method of service.methods)
-        // gjs adds a last argument after the D-Bus arguments.
-        object[method] = (...args) => record(service, method,
-            args.filter(arg => arg !== undefined && !(arg instanceof Gio.DBusMethodInvocation)));
+    const info = Gio.DBusNodeInfo.new_for_xml(service.xml).interfaces[0];
+    for (const method of service.methods) {
+        // gjs gives one more argument after the D-Bus arguments.
+        const count = info.lookup_method(method).in_args.length;
+        object[method] = (...args) => record(service, method, args.slice(0, count));
+    }
     const wrapper = Gio.DBusExportedObject.wrapJSObject(service.xml, object);
     wrapper.export(connection, service.path);
     exported.push(wrapper);
