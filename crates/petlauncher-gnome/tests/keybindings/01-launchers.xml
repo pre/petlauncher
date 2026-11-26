@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- A part of the same file of GNOME Settings 46, for the tests. -->
+<KeyListEntries group="system" schema="org.gnome.settings-daemon.plugins.media-keys" name="Launchers">
+  <KeyListEntry name="terminal" description="Launch terminal"/>
+</KeyListEntries>

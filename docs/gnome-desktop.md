@@ -33,18 +33,18 @@ match desktop.execute(&outcome.action) {
 
 The calls are synchronous, with a timeout of 10 s. Their time on the live session was not measured. A call takes longer when the bus must start Nautilus, when the lock screen shows (GNOME Shell answers `Lock` after the lock screen shows), or when polkit asks for a password for suspend.
 
-### R4, first installation
+### R4, the global key and conflicts
 
-R4 says that petlauncher takes Super+Space at the first installation, and that Ulauncher then has no key. The crate does this in two explicit steps. `set_global_key` alone never changes a different shortcut.
+The crate never changes the key of a different shortcut by itself. The program writes the petlauncher shortcut only when no other GNOME key binding has the key:
 
 ```rust
 let shortcuts = desktop.shortcuts()?;
-let taken = shortcuts.take_key("<Super>space")?;       // clears the key of "Show Ulauncher"
-desktop.set_global_key("<Super>space", petlauncher_gnome::TOGGLE_COMMAND)?;
-// `taken` has each changed entry with its old key, for a message to the owner.
+let conflicts = shortcuts.set_global_key_if_free("<Super>space", petlauncher_gnome::TOGGLE_COMMAND)?;
+// Empty: the key is written. Else nothing is written, and each conflict has
+// the name and the place in GNOME Settings, for a message to the owner.
 ```
 
-The program decides when an installation is the first one. The settings window can warn with `shortcuts.others_with_key(text)` and check a typed key with `validate_accelerator(text)`.
+`conflicts(accelerator)` gives each key binding that GNOME Settings shows in Keyboard > View and Customize Shortcuts and that has the key: the other custom shortcuts, and the built-in bindings of five schemas (see "GSettings keys"). Only an explicit action of the owner, the "Remove" button of the settings window, calls `remove_key(&conflict)`. For a custom shortcut it sets the key to empty and keeps the entry with its name and command, so GNOME Settings shows it as disabled. For a built-in binding it removes only the one accelerator from the list, and the other accelerators of the key stay. It never removes an entry.
 
 ## Public API
 
@@ -60,12 +60,17 @@ The program decides when an installation is the first one. The settings window c
 | `execute(action, desktop, context)` | Executes an action. Has no GNOME code. |
 | `Executed` | `Done`, `Fallback { reason }` or `NotHandled`. |
 | `CustomShortcuts` | The GNOME custom shortcuts in GSettings. |
-| `CustomShortcuts::new()`, `with_backend(source, backend)` | The installed schemas and dconf, or given schemas and a given backend. |
+| `CustomShortcuts::new()`, `with_backend(source, backend)` | The installed schemas, dconf and the files of GNOME Settings, or given schemas and a given backend with no files. |
+| `CustomShortcuts::with_catalog_dirs(dirs)` | The directories with the files `*.xml` of GNOME Settings, which give the names and the sections of the built-in bindings. |
 | `CustomShortcuts::global_key()` | The key of the petlauncher shortcut, or `None`. |
 | `CustomShortcuts::set_global_key(accelerator, command)` | Writes the petlauncher shortcut. An empty accelerator removes the key. |
+| `CustomShortcuts::set_global_key_if_free(accelerator, command)` | Writes the petlauncher shortcut only when `conflicts` is empty, and else gives the conflicts. |
 | `CustomShortcuts::others_with_key(accelerator)` | The other custom shortcuts with the same key. |
-| `CustomShortcuts::take_key(accelerator)` | Clears the key of those shortcuts and gives them with their old key. |
+| `CustomShortcuts::conflicts(accelerator)` | Each GNOME key binding with the same key, as `Conflict`. |
+| `CustomShortcuts::remove_key(conflict)` | Removes the key of one conflict. For an explicit action of the owner only. |
 | `CustomShortcut` | `path`, `name`, `command`, `binding`. |
+| `Conflict`, `BindingKind` | A key binding with the key: `Custom { path }` or `BuiltIn { schema, key }`, the `name` and the `section` in GNOME Settings, and the `accelerator` as stored. `place()` gives the place for the owner. |
+| `SHORTCUTS_PAGE`, `CUSTOM_SECTION` | `GNOME Settings > Keyboard > View and Customize Shortcuts` and `Custom Shortcuts`. |
 | `validate_accelerator(text)`, `AcceleratorError` | Checks a key text. The error text is for the owner. |
 | `is_settings_page` | The GNOME rule for settings pages, from `petlauncher-apps`. |
 | `SHORTCUT_PATH`, `SHORTCUT_NAME`, `TOGGLE_COMMAND`, `TRAY_ICON_ACTION` | The constants below. |
@@ -102,7 +107,12 @@ When the call to `org.freedesktop.FileManager1` fails, for example because no se
 |---|---|---|---|---|---|
 | `org.gnome.settings-daemon.plugins.media-keys` | `/org/gnome/settings-daemon/plugins/media-keys/` | `custom-keybindings` | `as` | all functions | `set_global_key` adds `SHORTCUT_PATH` at the end when it is missing. The other paths and their order stay. |
 | `org.gnome.settings-daemon.plugins.media-keys.custom-keybinding` (relocatable) | `SHORTCUT_PATH` | `name`, `command`, `binding` | `s` | `global_key` | `set_global_key` writes the three keys in one change (`delay` and `apply`). |
-| the same | each other path in `custom-keybindings` | `name`, `command`, `binding` | `s` | `others_with_key`, `take_key` | `take_key` writes `binding` to `''`. |
+| the same | each other path in `custom-keybindings` | `name`, `command`, `binding` | `s` | `others_with_key`, `conflicts` | `remove_key` writes `binding` to `''`. |
+| `org.gnome.desktop.wm.keybindings`, `org.gnome.shell.keybindings`, `org.gnome.mutter.keybindings`, `org.gnome.mutter.wayland.keybindings`, `org.gnome.settings-daemon.plugins.media-keys` | the fixed path of the schema | each key of type `as`, except `custom-keybindings` | `as` | `conflicts` | `remove_key` writes the list with one accelerator less. |
+
+On GNOME 46 all keys of the first four schemas have the type `as`, and `org.gnome.settings-daemon.plugins.media-keys` has 98 keys of type `as` and the number `volume-step` (`gsettings list-recursively`, read only). The GNOME default of `org.gnome.desktop.wm.keybindings switch-input-source` is `['<Super>space', 'XF86Keyboard']`, so on a new installation of GNOME the default key of petlauncher has a conflict.
+
+The names and the sections come from the files of GNOME Settings, `<data dir>/gnome-control-center/keybindings/*.xml` for each system data directory: the attribute `name` of `KeyListEntries` is the section, for example `Typing`, and the attribute `description` of each `KeyListEntry` is the name. An entry with `hidden="true"` does not show in GNOME Settings. A key that has no entry gets the summary of its schema key, and the place gives the `gsettings` schema and key.
 
 | Constant | Value |
 |---|---|
@@ -127,7 +137,7 @@ GNOME Shell (Mutter) reads `binding` with its own parser, `meta_parse_accelerato
 | Key | The rest of the text. A key name of libxkbcommon (`xkb_keysym_from_name` with `XKB_KEYSYM_CASE_INSENSITIVE`), then the same name with `XF86` before it. Also `0x` and two or more hexadecimal digits (a key code), and `Above_Tab`. |
 | No key | An empty text and `disabled`. |
 
-Two names of one key are the same key, for example `Prior` and `Page_Up`, and `a` and `A`. `<Super>` and `<Mod4>` are different in the comparison, although many keyboard layouts give the Super key the modifier Mod4.
+Two names of one key are the same key, for example `Prior` and `Page_Up`, and `a` and `A`. `<Mod4>` is the same modifier as `<Super>`, because the keyboard layouts of GNOME give the Super key the modifier Mod4. The order of the modifiers has no effect.
 
 The crate is stricter than Mutter in two cases, so that the settings window can warn: an unknown modifier such as `<Win>` is an error (Mutter ignores it), and modifiers with no key are an error.
 
@@ -198,7 +208,7 @@ Results that the code depends on:
 - `org.gnome.SessionManager` has `Logout(in u mode)`, `Reboot()`, `Shutdown()`, `CanShutdown(out b)`, `RequestReboot()` and `RequestShutdown()`, among others. `/usr/libexec/gnome-session-binary` owns the name.
 - `org.freedesktop.login1.Manager` has `Suspend(b interactive)` and `CanSuspend() -> s`. `CanSuspend` was not called.
 - The JavaScript of GNOME Shell 46 in `libshell-14.so`, read with `strings`: the log out, power off and restart actions of the system menu call `this._session.LogoutAsync(0)`, `this._session.ShutdownAsync(0)` and `this._session.RebootAsync()`, and the login manager calls `this._proxy.SuspendAsync(true)`. The lock action of the menu calls the screen shield directly, in the same process.
-- The custom shortcuts of the owner: `ulauncher/` ("Show Ulauncher", `ulauncher toggle`, `<Super>space`) and `kukka-hotkey-window/` ("kukka Hotkey Window", `<Control><Super>plus`). `org.gnome.desktop.wm.keybindings switch-input-source` is `[]`, so no window manager key uses Super+Space.
+- The owner had two custom shortcuts of other programs, one of them with `<Super>space`. `org.gnome.desktop.wm.keybindings switch-input-source` is `[]`, so no window manager key uses Super+Space.
 - In the sandbox of the agent, `gsettings get` gave the schema defaults and `gdbus` could not connect to the system bus. `dconf read` and `busctl` worked. The program does not run in that sandbox.
 
 ## Test
@@ -212,8 +222,8 @@ The tests need `dbus-daemon`, `glib-compile-schemas`, `ps`, the MIME database `/
 | Area | Method |
 |---|---|
 | D-Bus | A private `dbus-daemon` with its own configuration and no service directories, so a call to a name with no owner fails and starts no real service. Mock services own the names and record each call with its signature. The code gets the connections from `GnomeDesktop::with_parts`. A second private bus is the system bus. |
-| GSettings | The memory backend, and test schemas compiled from `tests/schemas/`. Before the first settings object, the test process sets `GSETTINGS_BACKEND=memory`, and each test asserts that the default backend is `GMemorySettingsBackend`. A test compares the test schemas with the installed schemas, read only. |
-| R4 in a separate process | A child process with `GSETTINGS_BACKEND=keyfile` and a key file in its own `XDG_CONFIG_HOME`. The key file starts with the two custom shortcuts of the owner. The child asserts that its default backend is `GKeyfileSettingsBackend` with that file, then uses `GnomeDesktop::new`, `take_key` and `set_global_key`. The parent reads the key file. |
+| GSettings | The memory backend, and test schemas compiled from `tests/schemas/` with a part of the built-in bindings and their GNOME defaults. The names come from a test copy of the files of GNOME Settings in `tests/keybindings/`. Before the first settings object, the test process sets `GSETTINGS_BACKEND=memory`, and each test asserts that the default backend is `GMemorySettingsBackend`. A test compares the test schemas with the installed schemas, and a test reads the installed files of GNOME Settings, read only. |
+| R4 in a separate process | A child process with `GSETTINGS_BACKEND=keyfile` and a key file in its own `XDG_CONFIG_HOME`. The key file starts with two custom shortcuts with invented names, one with Super+Space. The child asserts that its default backend is `GKeyfileSettingsBackend` with that file, then uses `GnomeDesktop::new`, `set_global_key_if_free` (refused for the conflict), `remove_key` and `set_global_key_if_free` again. The parent reads the key file. |
 | Programs | A child process with an empty environment and its own `HOME`, XDG directories, private session bus, `GSETTINGS_BACKEND=memory`, and no `WAYLAND_DISPLAY` or `DISPLAY`. Its `XDG_DATA_DIRS` has only the MIME database, so the applications of the system are not visible. Its only applications are recorders that write their arguments to a file. Its `mimeapps.list` makes them the default applications. |
 | Script | A script that writes its working directory, `$1` and its process group to a file, sleeps 2 s, and writes `survived`. The child process stops first. |
 
@@ -244,9 +254,9 @@ To restore them: `dconf load /org/gnome/settings-daemon/plugins/media-keys/ < ~/
 | 9 | R16 | Select Restart. | The GNOME confirmation window for restart shows. Click Cancel. |
 | 10 | R16 | Select Power off. | The GNOME confirmation window for power off shows. Click Cancel. |
 | 11 | R16 | Type `wifi` and press Enter. | GNOME Settings opens on the Wi-Fi page. |
-| 12 | R4 | Do the first installation of petlauncher. Open GNOME Settings, Keyboard, View and Customize Shortcuts, Custom Shortcuts. | "Show petlauncher" has Super+Space. "Show Ulauncher" has no key. "kukka Hotkey Window" did not change. |
+| 12 | R4 | Start petlauncher while a different custom shortcut has Super+Space. | The launcher shows a notice with the name of that shortcut and its place in GNOME Settings. GNOME Settings shows no "Show petlauncher" entry, and the other shortcut did not change. |
 | 13 | R4 | Press Super+Space. | petlauncher shows. Press it again: petlauncher hides. |
-| 14 | R4 | Restart Ulauncher, or log out and log in. | "Show Ulauncher" still has no key. If it has Super+Space again, Ulauncher writes its key at its start, and the owner must remove the key in Ulauncher. |
+| 14 | R4 | Remove the key of the other shortcut in GNOME Settings, then open the launcher from the top bar icon. | "Show petlauncher" has Super+Space, and the notice is gone. |
 | 15 | R4 | Change the key of "Show petlauncher" in GNOME Settings. | The settings window of petlauncher shows the new key (`global_key`). |
 | 16 | R3 | Set "Show tray icon" on and off. | The icon of the extension shows and goes. |
 | 17 | R12 | A shortcut with the browser Microsoft Edge, and one with a browser command. | The URL opens in Edge, and in the browser of the command. The new window has the focus. |

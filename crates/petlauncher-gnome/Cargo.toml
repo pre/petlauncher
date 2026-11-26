@@ -13,6 +13,7 @@ glib = "0.22"
 petlauncher-apps = { path = "../petlauncher-apps" }
 petlauncher-core = { path = "../petlauncher-core" }
 libc = "0.2"
+roxmltree = "0.21"
 
 [dev-dependencies]
 tempfile = "3"

@@ -7,19 +7,25 @@ use std::fs;
 
 use gio::prelude::*;
 use petlauncher_gnome::{
-    CustomShortcut, CustomShortcuts, GnomeDesktop, SHORTCUT_NAME, SHORTCUT_PATH, TOGGLE_COMMAND,
+    BindingKind, Conflict, CustomShortcut, CustomShortcuts, GnomeDesktop, CUSTOM_SECTION,
+    SHORTCUT_NAME, SHORTCUT_PATH, TOGGLE_COMMAND,
 };
-use support::{SettingsFixture, KUKKA_PATH, ULAUNCHER_PATH};
+use support::{SettingsFixture, NOTES_PATH, TERMINAL_PATH, WM_KEYBINDINGS};
 
 fn shortcuts(fixture: &SettingsFixture) -> CustomShortcuts {
     CustomShortcuts::with_backend(&fixture.source, &fixture.backend).expect("test schemas")
 }
 
-fn ulauncher() -> CustomShortcut {
+/// The shortcuts and the built-in bindings with the names of GNOME Settings.
+fn named_shortcuts(fixture: &SettingsFixture) -> CustomShortcuts {
+    shortcuts(fixture).with_catalog_dirs(vec![support::catalog_dir()])
+}
+
+fn notes() -> CustomShortcut {
     CustomShortcut {
-        path: ULAUNCHER_PATH.into(),
-        name: "Show Ulauncher".into(),
-        command: "ulauncher toggle".into(),
+        path: NOTES_PATH.into(),
+        name: "Show Scratch Notes".into(),
+        command: "scratch-notes --toggle".into(),
         binding: "<Super>space".into(),
     }
 }
@@ -27,7 +33,7 @@ fn ulauncher() -> CustomShortcut {
 #[test]
 fn has_no_global_key_before_the_first_installation() {
     let fixture = SettingsFixture::new();
-    fixture.owner_setup();
+    fixture.two_shortcuts();
 
     let key = shortcuts(&fixture).global_key();
 
@@ -37,13 +43,13 @@ fn has_no_global_key_before_the_first_installation() {
 #[test]
 fn set_global_key_writes_the_entry_and_adds_its_path_after_the_other_entries() {
     let fixture = SettingsFixture::new();
-    fixture.owner_setup();
+    fixture.two_shortcuts();
 
     shortcuts(&fixture)
         .set_global_key("<Super>space", TOGGLE_COMMAND)
         .unwrap();
 
-    assert_eq!(fixture.paths(), [ULAUNCHER_PATH, KUKKA_PATH, SHORTCUT_PATH]);
+    assert_eq!(fixture.paths(), [NOTES_PATH, TERMINAL_PATH, SHORTCUT_PATH]);
     assert_eq!(
         fixture.read(SHORTCUT_PATH),
         ["Show petlauncher", "petlauncher toggle", "<Super>space"]
@@ -54,17 +60,21 @@ fn set_global_key_writes_the_entry_and_adds_its_path_after_the_other_entries() {
 #[test]
 fn set_global_key_does_not_change_the_other_entries() {
     let fixture = SettingsFixture::new();
-    fixture.owner_setup();
+    fixture.two_shortcuts();
 
     shortcuts(&fixture)
         .set_global_key("<Super>space", TOGGLE_COMMAND)
         .unwrap();
 
     assert_eq!(
-        fixture.read(ULAUNCHER_PATH),
-        ["Show Ulauncher", "ulauncher toggle", "<Super>space"]
+        fixture.read(NOTES_PATH),
+        [
+            "Show Scratch Notes",
+            "scratch-notes --toggle",
+            "<Super>space"
+        ]
     );
-    assert_eq!(fixture.read(KUKKA_PATH)[2], "<Control><Super>plus");
+    assert_eq!(fixture.read(TERMINAL_PATH)[2], "<Control><Super>plus");
 }
 
 #[test]
@@ -126,31 +136,31 @@ fn global_key_ignores_an_entry_that_is_not_in_the_list() {
 #[test]
 fn set_global_key_rejects_an_accelerator_that_is_not_correct_and_writes_nothing() {
     let fixture = SettingsFixture::new();
-    fixture.owner_setup();
+    fixture.two_shortcuts();
 
     let error = shortcuts(&fixture)
         .set_global_key("<Win>space", TOGGLE_COMMAND)
         .unwrap_err();
 
     assert!(error.0.contains("<Win> is not a modifier"), "{error}");
-    assert_eq!(fixture.paths(), [ULAUNCHER_PATH, KUKKA_PATH]);
+    assert_eq!(fixture.paths(), [NOTES_PATH, TERMINAL_PATH]);
     assert_eq!(fixture.read(SHORTCUT_PATH), ["", "", ""]);
 }
 
 #[test]
-fn others_with_key_finds_the_ulauncher_shortcut_for_super_space() {
+fn others_with_key_finds_the_custom_shortcut_with_super_space() {
     let fixture = SettingsFixture::new();
-    fixture.owner_setup();
+    fixture.two_shortcuts();
 
     let others = shortcuts(&fixture).others_with_key("<super>Space").unwrap();
 
-    assert_eq!(others, [ulauncher()]);
+    assert_eq!(others, [notes()]);
 }
 
 #[test]
 fn others_with_key_ignores_petlauncher_and_the_entries_that_are_not_in_the_list() {
     let fixture = SettingsFixture::new();
-    fixture.owner_setup();
+    fixture.two_shortcuts();
     let shortcuts = shortcuts(&fixture);
     shortcuts.set_global_key("<Alt>F2", TOGGLE_COMMAND).unwrap();
     fixture.write(
@@ -168,19 +178,19 @@ fn others_with_key_ignores_petlauncher_and_the_entries_that_are_not_in_the_list(
 #[test]
 fn others_with_key_skips_a_path_that_gsettings_cannot_open() {
     let fixture = SettingsFixture::new();
-    fixture.owner_setup();
-    fixture.set_paths(&["no-slash", "/double//slash/", ULAUNCHER_PATH]);
+    fixture.two_shortcuts();
+    fixture.set_paths(&["no-slash", "/double//slash/", NOTES_PATH]);
 
     let others = shortcuts(&fixture).others_with_key("<Super>space").unwrap();
 
-    assert_eq!(others, [ulauncher()]);
+    assert_eq!(others, [notes()]);
 }
 
 #[test]
 fn others_with_key_of_no_key_is_empty() {
     let fixture = SettingsFixture::new();
-    fixture.owner_setup();
-    fixture.write(KUKKA_PATH, "kukka", "kukka", "");
+    fixture.two_shortcuts();
+    fixture.write(TERMINAL_PATH, "Quick Terminal", "quick-terminal", "");
 
     assert_eq!(shortcuts(&fixture).others_with_key("").unwrap(), []);
 }
@@ -194,56 +204,258 @@ fn others_with_key_rejects_an_accelerator_that_is_not_correct() {
     assert!(error.0.contains("no key after the modifiers"), "{error}");
 }
 
+fn built_in(schema: &str, key: &str, name: &str, section: Option<&str>, stored: &str) -> Conflict {
+    Conflict {
+        kind: BindingKind::BuiltIn {
+            schema: schema.into(),
+            key: key.into(),
+        },
+        name: name.into(),
+        section: section.map(Into::into),
+        accelerator: stored.into(),
+    }
+}
+
+fn strings(settings: &gio::Settings, key: &str) -> Vec<String> {
+    settings
+        .strv(key)
+        .iter()
+        .map(|text| text.to_string())
+        .collect()
+}
+
+fn custom_conflict() -> Conflict {
+    Conflict {
+        kind: BindingKind::Custom {
+            path: NOTES_PATH.into(),
+        },
+        name: "Show Scratch Notes".into(),
+        section: Some(CUSTOM_SECTION.into()),
+        accelerator: "<Super>space".into(),
+    }
+}
+
 #[test]
-fn take_key_clears_the_binding_of_ulauncher_and_reports_the_entry() {
+fn conflicts_give_a_custom_shortcut_with_the_section_of_gnome_settings() {
     let fixture = SettingsFixture::new();
-    fixture.owner_setup();
+    fixture.two_shortcuts();
 
-    let taken = shortcuts(&fixture).take_key("<Super>space").unwrap();
+    let conflicts = named_shortcuts(&fixture).conflicts("<Super>space").unwrap();
 
-    assert_eq!(taken, [ulauncher()]);
+    assert_eq!(conflicts, [custom_conflict()]);
     assert_eq!(
-        fixture.read(ULAUNCHER_PATH),
-        ["Show Ulauncher", "ulauncher toggle", ""]
+        conflicts[0].place(),
+        "GNOME Settings > Keyboard > View and Customize Shortcuts > Custom Shortcuts"
     );
-    assert_eq!(fixture.paths(), [ULAUNCHER_PATH, KUKKA_PATH]);
-    assert_eq!(fixture.read(KUKKA_PATH)[2], "<Control><Super>plus");
 }
 
 #[test]
-fn take_key_changes_nothing_when_no_other_entry_has_the_key() {
+fn conflicts_give_the_input_source_switch_of_gnome_with_its_name_in_gnome_settings() {
     let fixture = SettingsFixture::new();
-    fixture.owner_setup();
 
-    let taken = shortcuts(&fixture).take_key("<Alt>space").unwrap();
+    let conflicts = named_shortcuts(&fixture).conflicts("<Super>space").unwrap();
 
-    assert_eq!(taken, []);
-    assert_eq!(fixture.read(ULAUNCHER_PATH)[2], "<Super>space");
+    assert_eq!(
+        conflicts,
+        [built_in(
+            WM_KEYBINDINGS,
+            "switch-input-source",
+            "Switch to next input source",
+            Some("Typing"),
+            "<Super>space"
+        )]
+    );
 }
 
 #[test]
-fn take_key_rejects_an_accelerator_that_is_not_correct_and_changes_nothing() {
+fn conflicts_compare_the_normal_form_of_the_key() {
     let fixture = SettingsFixture::new();
-    fixture.owner_setup();
-
-    assert!(shortcuts(&fixture).take_key("<Super>spcae").is_err());
-    assert_eq!(fixture.read(ULAUNCHER_PATH)[2], "<Super>space");
-}
-
-#[test]
-fn r4_first_installation_takes_super_space_from_ulauncher() {
-    let fixture = SettingsFixture::new();
-    fixture.owner_setup();
-    let shortcuts = shortcuts(&fixture);
-
-    let taken = shortcuts.take_key("<Super>space").unwrap();
-    shortcuts
-        .set_global_key("<Super>space", TOGGLE_COMMAND)
+    fixture
+        .built_in(WM_KEYBINDINGS)
+        .set_strv("switch-input-source", ["XF86Keyboard", "<Mod4>space"])
+        .unwrap();
+    fixture
+        .built_in(WM_KEYBINDINGS)
+        .set_strv("activate-window-menu", ["<Shift><Control>x"])
         .unwrap();
 
-    assert_eq!(taken, [ulauncher()]);
+    let shortcuts = named_shortcuts(&fixture);
+    let super_space = shortcuts.conflicts("<super>Space").unwrap();
+    let control_shift = shortcuts.conflicts("<Control><Shift>X").unwrap();
+
+    assert_eq!(super_space.len(), 1);
+    assert_eq!(super_space[0].accelerator, "<Mod4>space");
+    assert_eq!(control_shift.len(), 1);
+    assert_eq!(control_shift[0].accelerator, "<Shift><Control>x");
+}
+
+#[test]
+fn a_key_that_gnome_settings_does_not_show_gets_the_summary_of_its_schema() {
+    let fixture = SettingsFixture::new();
+    fixture
+        .built_in("org.gnome.shell.keybindings")
+        .set_strv("toggle-overview", ["<Super>F9"])
+        .unwrap();
+
+    let conflicts = named_shortcuts(&fixture).conflicts("<Super>F9").unwrap();
+
+    assert_eq!(
+        conflicts,
+        [built_in(
+            "org.gnome.shell.keybindings",
+            "toggle-overview",
+            "Show the overview",
+            None,
+            "<Super>F9"
+        )]
+    );
+}
+
+#[test]
+fn conflicts_skip_the_list_of_custom_shortcuts_a_number_and_petlauncher() {
+    let fixture = SettingsFixture::new();
+    fixture.two_shortcuts();
+    let shortcuts = named_shortcuts(&fixture);
+    shortcuts
+        .set_global_key("<Control><Alt>t", TOGGLE_COMMAND)
+        .unwrap();
+
+    let conflicts = shortcuts.conflicts("<Primary><Alt>t").unwrap();
+
+    assert_eq!(
+        conflicts,
+        [built_in(
+            support::MEDIA_KEYS,
+            "terminal",
+            "Launch terminal",
+            Some("Launchers"),
+            "<Primary><Alt>t"
+        )]
+    );
+}
+
+#[test]
+fn no_key_has_no_conflict_and_a_wrong_key_is_an_error() {
+    let fixture = SettingsFixture::new();
+    let shortcuts = named_shortcuts(&fixture);
+
+    assert_eq!(shortcuts.conflicts("").unwrap(), []);
+    assert_eq!(shortcuts.conflicts("disabled").unwrap(), []);
+    assert!(shortcuts.conflicts("<Win>space").is_err());
+}
+
+#[test]
+fn set_global_key_if_free_writes_nothing_when_a_different_binding_has_the_key() {
+    let fixture = SettingsFixture::new();
+    fixture.two_shortcuts();
+    let shortcuts = named_shortcuts(&fixture);
+
+    let conflicts = shortcuts
+        .set_global_key_if_free("<Super>space", TOGGLE_COMMAND)
+        .unwrap();
+
+    assert_eq!(conflicts, [custom_conflict()]);
+    assert_eq!(shortcuts.global_key(), None);
+    assert_eq!(fixture.paths(), [NOTES_PATH, TERMINAL_PATH]);
+}
+
+#[test]
+fn set_global_key_if_free_writes_the_key_when_no_binding_has_it() {
+    let fixture = SettingsFixture::new();
+    fixture.two_shortcuts();
+    let shortcuts = named_shortcuts(&fixture);
+
+    let conflicts = shortcuts
+        .set_global_key_if_free("<Super>F12", TOGGLE_COMMAND)
+        .unwrap();
+
+    assert_eq!(conflicts, []);
+    assert_eq!(shortcuts.global_key(), Some("<Super>F12".into()));
+}
+
+#[test]
+fn remove_key_of_a_custom_shortcut_keeps_the_entry_with_its_name_and_command() {
+    let fixture = SettingsFixture::new();
+    fixture.two_shortcuts();
+    let shortcuts = named_shortcuts(&fixture);
+
+    shortcuts.remove_key(&custom_conflict()).unwrap();
+
+    assert_eq!(
+        fixture.read(NOTES_PATH),
+        ["Show Scratch Notes", "scratch-notes --toggle", ""]
+    );
+    assert_eq!(fixture.paths(), [NOTES_PATH, TERMINAL_PATH]);
+    assert_eq!(fixture.read(TERMINAL_PATH)[2], "<Control><Super>plus");
+    assert_eq!(shortcuts.conflicts("<Super>space").unwrap(), []);
+}
+
+#[test]
+fn remove_key_of_a_built_in_binding_keeps_its_other_accelerators() {
+    let fixture = SettingsFixture::new();
+    let shortcuts = named_shortcuts(&fixture);
+    let conflict = shortcuts.conflicts("<Super>space").unwrap().remove(0);
+
+    shortcuts.remove_key(&conflict).unwrap();
+
+    assert_eq!(
+        strings(&fixture.built_in(WM_KEYBINDINGS), "switch-input-source"),
+        ["XF86Keyboard"]
+    );
+    assert_eq!(
+        strings(
+            &fixture.built_in(WM_KEYBINDINGS),
+            "switch-input-source-backward"
+        ),
+        ["<Shift><Super>space", "<Shift>XF86Keyboard"]
+    );
+    assert_eq!(shortcuts.conflicts("<Super>space").unwrap(), []);
+}
+
+#[test]
+fn after_remove_key_the_global_key_is_free() {
+    let fixture = SettingsFixture::new();
+    fixture.two_shortcuts();
+    let shortcuts = named_shortcuts(&fixture);
+    for conflict in shortcuts.conflicts("<Super>space").unwrap() {
+        shortcuts.remove_key(&conflict).unwrap();
+    }
+
+    let conflicts = shortcuts
+        .set_global_key_if_free("<Super>space", TOGGLE_COMMAND)
+        .unwrap();
+
+    assert_eq!(conflicts, []);
     assert_eq!(shortcuts.global_key(), Some("<Super>space".into()));
-    assert_eq!(shortcuts.others_with_key("<Super>space").unwrap(), []);
+}
+
+#[test]
+fn remove_key_rejects_a_binding_that_is_not_a_gnome_key_binding() {
+    let fixture = SettingsFixture::new();
+    fixture.two_shortcuts();
+    let shortcuts = named_shortcuts(&fixture);
+    let wrong = [
+        built_in("org.example.Other", "key", "Other", None, "<Super>space"),
+        built_in(
+            support::MEDIA_KEYS,
+            "custom-keybindings",
+            "List",
+            None,
+            NOTES_PATH,
+        ),
+        built_in(support::MEDIA_KEYS, "volume-step", "Step", None, "6"),
+        Conflict {
+            kind: BindingKind::Custom {
+                path: SHORTCUT_PATH.into(),
+            },
+            ..custom_conflict()
+        },
+    ];
+
+    for conflict in &wrong {
+        assert!(shortcuts.remove_key(conflict).is_err(), "{conflict:?}");
+    }
+    assert_eq!(fixture.paths(), [NOTES_PATH, TERMINAL_PATH]);
 }
 
 #[test]
@@ -290,8 +502,20 @@ fn the_installed_schema_has_the_keys_of_the_test_schema() {
     let test = support::test_schemas();
 
     for (id, keys) in [
-        (support::MEDIA_KEYS, &["custom-keybindings"][..]),
+        (
+            support::MEDIA_KEYS,
+            &["custom-keybindings", "terminal", "volume-step"][..],
+        ),
         (support::CUSTOM_KEYBINDING, &["name", "command", "binding"]),
+        (
+            WM_KEYBINDINGS,
+            &[
+                "switch-input-source",
+                "switch-input-source-backward",
+                "activate-window-menu",
+            ],
+        ),
+        ("org.gnome.shell.keybindings", &["toggle-overview"]),
     ] {
         let real = installed.lookup(id, true).unwrap();
         let copy = test.lookup(id, false).unwrap();
@@ -304,6 +528,44 @@ fn the_installed_schema_has_the_keys_of_the_test_schema() {
             );
         }
     }
+}
+
+/// The installed schemas and files of GNOME Settings, with the memory
+/// backend: the GNOME default of the input source switch is Super+Space,
+/// and GNOME Settings names it. Reads the installed files, and writes
+/// nothing.
+#[test]
+fn the_installed_files_of_gnome_settings_name_the_default_input_source_key() {
+    let backend = support::memory_backend();
+    let Some(installed) = gio::SettingsSchemaSource::default() else {
+        eprintln!("no installed schemas: the test does nothing");
+        return;
+    };
+    let Ok(shortcuts) = CustomShortcuts::with_backend(&installed, &backend) else {
+        eprintln!("gnome-settings-daemon is not installed: the test does nothing");
+        return;
+    };
+    let catalog = std::path::PathBuf::from("/usr/share/gnome-control-center/keybindings");
+    if !catalog.is_dir() {
+        eprintln!("GNOME Settings is not installed: the test does nothing");
+        return;
+    }
+
+    let conflicts = shortcuts
+        .with_catalog_dirs(vec![catalog])
+        .conflicts("<Super>space")
+        .unwrap();
+
+    assert!(
+        conflicts.contains(&built_in(
+            WM_KEYBINDINGS,
+            "switch-input-source",
+            "Switch to next input source",
+            Some("Typing"),
+            "<Super>space"
+        )),
+        "{conflicts:#?}"
+    );
 }
 
 #[test]
@@ -339,15 +601,17 @@ fn the_desktop_tells_why_it_has_no_custom_shortcuts() {
 // ------------------------------------------------- separate process
 
 /// R4 in a separate process whose default GSettings backend is the keyfile
-/// backend with a file in the isolated root. The file starts with the two
-/// custom shortcuts of the owner. The child uses `GnomeDesktop::new`, as the
-/// program does.
+/// backend with a file in the isolated root. The file has two custom
+/// shortcuts of other programs, one with Super+Space. The child uses
+/// `GnomeDesktop::new`, as the program does: the first write is refused for
+/// the conflict, and after `remove_key`, which only the owner starts, the
+/// key is written.
 #[test]
-fn r4_first_installation_in_a_process_with_the_keyfile_backend() {
+fn r4_conflict_and_removal_in_a_process_with_the_keyfile_backend() {
     let env = support::IsolatedEnv::new();
     let keyfile = env.path("config/glib-2.0/settings/keyfile");
     fs::create_dir_all(keyfile.parent().unwrap()).unwrap();
-    fs::write(&keyfile, OWNER_KEYFILE).unwrap();
+    fs::write(&keyfile, TWO_SHORTCUTS_KEYFILE).unwrap();
 
     let status = env.run_child(
         "isolated_child",
@@ -368,7 +632,11 @@ fn r4_first_installation_in_a_process_with_the_keyfile_backend() {
         "{output}"
     );
     assert!(
-        output.contains(&format!("taken {ULAUNCHER_PATH} <Super>space")),
+        output.contains(&format!("conflict {NOTES_PATH} <Super>space")),
+        "{output}"
+    );
+    assert!(
+        output.contains("global key after the conflict None"),
         "{output}"
     );
     assert!(
@@ -382,15 +650,14 @@ fn r4_first_installation_in_a_process_with_the_keyfile_backend() {
     let base = "org/gnome/settings-daemon/plugins/media-keys";
     assert_eq!(
         value(base, "custom-keybindings"),
-        format!("['{ULAUNCHER_PATH}', '{KUKKA_PATH}', '{SHORTCUT_PATH}']")
+        format!("['{NOTES_PATH}', '{TERMINAL_PATH}', '{SHORTCUT_PATH}']")
     );
-    assert_eq!(
-        value(&format!("{base}/custom-keybindings/ulauncher"), "binding"),
-        "''"
-    );
+    let notes = format!("{base}/custom-keybindings/scratch-notes");
+    assert_eq!(value(&notes, "binding"), "''");
+    assert_eq!(value(&notes, "name"), "'Show Scratch Notes'");
     assert_eq!(
         value(
-            &format!("{base}/custom-keybindings/kukka-hotkey-window"),
+            &format!("{base}/custom-keybindings/quick-terminal"),
             "binding"
         ),
         "'<Control><Super>plus'"
@@ -401,18 +668,21 @@ fn r4_first_installation_in_a_process_with_the_keyfile_backend() {
     assert_eq!(value(&petlauncher, "name"), "'Show petlauncher'");
 }
 
-const OWNER_KEYFILE: &str = "[org/gnome/settings-daemon/plugins/media-keys]
-custom-keybindings=['/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/ulauncher/', '/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/kukka-hotkey-window/']
+const TWO_SHORTCUTS_KEYFILE: &str = "[org/gnome/settings-daemon/plugins/media-keys]
+custom-keybindings=['/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/scratch-notes/', '/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/quick-terminal/']
 
-[org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/ulauncher]
+[org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/scratch-notes]
 binding='<Super>space'
-command='ulauncher toggle'
-name='Show Ulauncher'
+command='scratch-notes --toggle'
+name='Show Scratch Notes'
 
-[org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/kukka-hotkey-window]
+[org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/quick-terminal]
 binding='<Control><Super>plus'
-command='gapplication action dev.kukka.Kukka toggle-quick-terminal'
-name='kukka Hotkey Window'
+command='quick-terminal'
+name='Quick Terminal'
+
+[org/gnome/desktop/wm/keybindings]
+switch-input-source=@as []
 ";
 
 /// The child side of the tests above. It does nothing outside `run_child`.
@@ -430,17 +700,25 @@ fn isolated_child() {
     println!("backend {}", backend.type_().name());
 
     let desktop = GnomeDesktop::new().unwrap();
-    let taken = desktop
-        .shortcuts()
-        .unwrap()
-        .take_key("<Super>space")
+    let shortcuts = desktop.shortcuts().unwrap();
+    let conflicts = shortcuts
+        .set_global_key_if_free("<Super>space", TOGGLE_COMMAND)
         .unwrap();
-    desktop
-        .set_global_key("<Super>space", TOGGLE_COMMAND)
-        .unwrap();
-
-    for shortcut in taken {
-        println!("taken {} {}", shortcut.path, shortcut.binding);
+    for conflict in &conflicts {
+        if let BindingKind::Custom { path } = &conflict.kind {
+            println!("conflict {path} {}", conflict.accelerator);
+        }
     }
+    println!(
+        "global key after the conflict {:?}",
+        desktop.global_key().unwrap()
+    );
+    for conflict in &conflicts {
+        shortcuts.remove_key(conflict).unwrap();
+    }
+    let left = shortcuts
+        .set_global_key_if_free("<Super>space", TOGGLE_COMMAND)
+        .unwrap();
+    assert_eq!(left, []);
     println!("global key {:?}", desktop.global_key().unwrap());
 }

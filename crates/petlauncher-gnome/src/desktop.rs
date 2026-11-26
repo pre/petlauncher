@@ -67,7 +67,8 @@ impl GnomeDesktop {
     }
 
     /// R4: the custom shortcuts, for the functions that are not in the
-    /// `Desktop` trait: `others_with_key` and `take_key`.
+    /// `Desktop` trait: `conflicts`, `set_global_key_if_free` and
+    /// `remove_key`.
     pub fn shortcuts(&self) -> Result<&CustomShortcuts, DesktopError> {
         self.shortcuts.as_ref().map_err(Clone::clone)
     }

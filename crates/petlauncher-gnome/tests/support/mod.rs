@@ -272,6 +272,13 @@ pub fn test_schema_dir() -> &'static Path {
             .status()
             .expect("glib-compile-schemas runs");
         assert!(status.success(), "glib-compile-schemas: {status}");
+        // GLib reads the summaries of the keys from the XML files next to
+        // the compiled file.
+        let sources = concat!(env!("CARGO_MANIFEST_DIR"), "/tests/schemas");
+        for file in fs::read_dir(sources).unwrap() {
+            let path = file.unwrap().path();
+            fs::copy(&path, dir.path().join(path.file_name().unwrap())).unwrap();
+        }
         dir
     })
     .path()
@@ -286,10 +293,16 @@ pub fn test_schemas() -> gio::SettingsSchemaSource {
 pub const MEDIA_KEYS: &str = "org.gnome.settings-daemon.plugins.media-keys";
 pub const CUSTOM_KEYBINDING: &str =
     "org.gnome.settings-daemon.plugins.media-keys.custom-keybinding";
-pub const ULAUNCHER_PATH: &str =
-    "/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/ulauncher/";
-pub const KUKKA_PATH: &str =
-    "/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/kukka-hotkey-window/";
+pub const WM_KEYBINDINGS: &str = "org.gnome.desktop.wm.keybindings";
+pub const NOTES_PATH: &str =
+    "/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/scratch-notes/";
+pub const TERMINAL_PATH: &str =
+    "/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/quick-terminal/";
+
+/// The test copy of the files of GNOME Settings.
+pub fn catalog_dir() -> PathBuf {
+    PathBuf::from(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/keybindings"))
+}
 
 /// Reads and writes the test backend directly, as GNOME Settings does.
 pub struct SettingsFixture {
@@ -340,21 +353,32 @@ impl SettingsFixture {
         self.list().set_strv("custom-keybindings", paths).unwrap();
     }
 
-    /// The two custom shortcuts of the owner on 2026-11-26.
-    pub fn owner_setup(&self) {
+    /// A built-in schema with no path in its id, for example
+    /// `org.gnome.desktop.wm.keybindings`.
+    pub fn built_in(&self, schema: &str) -> gio::Settings {
+        let schema = self.source.lookup(schema, false).unwrap();
+        gio::Settings::new_full(&schema, Some(&self.backend), None)
+    }
+
+    /// Two custom shortcuts of other programs. The first has Super+Space.
+    /// The input source switch has no key, as on the desktop of the owner.
+    pub fn two_shortcuts(&self) {
         self.write(
-            ULAUNCHER_PATH,
-            "Show Ulauncher",
-            "ulauncher toggle",
+            NOTES_PATH,
+            "Show Scratch Notes",
+            "scratch-notes --toggle",
             "<Super>space",
         );
         self.write(
-            KUKKA_PATH,
-            "kukka Hotkey Window",
-            "gapplication action dev.kukka.Kukka toggle-quick-terminal",
+            TERMINAL_PATH,
+            "Quick Terminal",
+            "quick-terminal",
             "<Control><Super>plus",
         );
-        self.set_paths(&[ULAUNCHER_PATH, KUKKA_PATH]);
+        self.set_paths(&[NOTES_PATH, TERMINAL_PATH]);
+        self.built_in(WM_KEYBINDINGS)
+            .set_strv("switch-input-source", [""; 0])
+            .unwrap();
     }
 }
 

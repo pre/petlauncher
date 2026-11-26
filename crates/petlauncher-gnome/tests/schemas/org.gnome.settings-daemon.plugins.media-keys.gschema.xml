@@ -1,14 +1,44 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-  The keys of the GNOME custom shortcuts that petlauncher-gnome uses, for the
-  tests. The test the_installed_schema_has_the_keys_of_the_test_schema
-  compares them with the installed schema of gnome-settings-daemon.
+  The keys of the GNOME key bindings that petlauncher-gnome uses, for the
+  tests: the custom shortcuts and some built-in bindings with their GNOME
+  defaults. The test the_installed_schema_has_the_keys_of_the_test_schema
+  compares them with the installed schemas of GNOME.
 -->
 <schemalist>
   <schema id="org.gnome.settings-daemon.plugins.media-keys"
           path="/org/gnome/settings-daemon/plugins/media-keys/">
     <key name="custom-keybindings" type="as">
       <default>[]</default>
+    </key>
+    <key name="terminal" type="as">
+      <default>['&lt;Primary&gt;&lt;Alt&gt;t']</default>
+      <summary>Launch terminal</summary>
+    </key>
+    <key name="volume-step" type="i">
+      <default>6</default>
+    </key>
+  </schema>
+  <schema id="org.gnome.desktop.wm.keybindings"
+          path="/org/gnome/desktop/wm/keybindings/">
+    <key name="switch-input-source" type="as">
+      <default>['&lt;Super&gt;space', 'XF86Keyboard']</default>
+      <summary>Switch to next input source</summary>
+    </key>
+    <key name="switch-input-source-backward" type="as">
+      <default>['&lt;Shift&gt;&lt;Super&gt;space', '&lt;Shift&gt;XF86Keyboard']</default>
+      <summary>Switch to previous input source</summary>
+    </key>
+    <key name="activate-window-menu" type="as">
+      <default>['&lt;Alt&gt;space']</default>
+      <summary>Activate the window menu</summary>
+    </key>
+  </schema>
+  <schema id="org.gnome.shell.keybindings"
+          path="/org/gnome/shell/keybindings/">
+    <key name="toggle-overview" type="as">
+      <default>[]</default>
+      <summary>Show the overview</summary>
     </key>
   </schema>
   <schema id="org.gnome.settings-daemon.plugins.media-keys.custom-keybinding">

@@ -3,6 +3,7 @@
 //! in the repository.
 
 mod accelerator;
+mod bindings;
 mod desktop;
 mod file_manager;
 mod launch;
@@ -10,6 +11,7 @@ mod session;
 mod shortcuts;
 
 pub use accelerator::{validate_accelerator, AcceleratorError};
+pub use bindings::{BindingKind, Conflict, CUSTOM_SECTION, SHORTCUTS_PAGE};
 pub use desktop::{GnomeDesktop, TRAY_ICON_ACTION};
 pub use launch::{execute, Executed};
 /// R16: the rule that finds the pages of GNOME Settings. Give it to

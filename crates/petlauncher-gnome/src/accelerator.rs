@@ -49,9 +49,11 @@ pub fn validate_accelerator(text: &str) -> Result<(), AcceleratorError> {
     parse(text).map(drop)
 }
 
-/// True when the two texts give the same key to GNOME Shell. Example:
-/// `<Super>space` and `<super>Space`. A text that is not correct is the same
-/// only as an equal text.
+/// True when the two texts give the same key to GNOME Shell. Examples:
+/// `<Super>space`, `<super>Space` and `<Mod4>space`; `<Shift><Control>x` and
+/// `<Control><Shift>x`. `<Mod4>` is `<Super>`, because the keyboard layouts
+/// of GNOME give the Super key the modifier Mod4. A text that is not correct
+/// is the same only as an equal text.
 pub(crate) fn same_key(a: &str, b: &str) -> bool {
     match (parse(a), parse(b)) {
         (Ok(Some(a)), Ok(Some(b))) => a == b,
@@ -81,7 +83,6 @@ const CONTROL: u16 = 1 << 1;
 const MOD1: u16 = 1 << 2;
 const MOD2: u16 = 1 << 3;
 const MOD3: u16 = 1 << 4;
-const MOD4: u16 = 1 << 5;
 const MOD5: u16 = 1 << 6;
 const META: u16 = 1 << 7;
 const SUPER: u16 = 1 << 8;
@@ -118,10 +119,9 @@ fn modifier(name: &str) -> Option<u16> {
         "alt" | "mod1" => MOD1,
         "mod2" => MOD2,
         "mod3" => MOD3,
-        "mod4" => MOD4,
+        "mod4" | "super" => SUPER,
         "mod5" => MOD5,
         "meta" => META,
-        "super" => SUPER,
         "hyper" => HYPER,
         _ => return None,
     };
@@ -259,8 +259,8 @@ mod tests {
     }
 
     #[test]
-    fn super_and_mod4_are_different_modifiers_in_the_text() {
-        assert!(!same_key("<Super>space", "<Mod4>space"));
+    fn super_and_mod4_are_the_same_modifier() {
+        assert!(same_key("<Super>space", "<Mod4>space"));
     }
 
     #[test]
