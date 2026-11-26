@@ -20,11 +20,11 @@ The program must obey this contract. The extension finds the program and its lau
 | Application ID | `pet.repo.Petlauncher`, given to `GtkApplication` (or `AdwApplication`). GTK then gives the same value as the Wayland application ID of each window of the application. |
 | D-Bus | The application registers on the session bus, which is the default of `GApplication`. Do not use `NON_UNIQUE`. The bus name is `pet.repo.Petlauncher` and the object path is `/pet/repo/Petlauncher`. |
 | Launcher window | A window of the application (`set_application`), for example `AdwApplicationWindow`. |
-| Launcher title | Exactly `petlauncher`. Set it before the first `present()`, and do not change it. |
+| Launcher title | Exactly `petlauncher`. Set it before the first show, and do not change it. |
 | Other windows | The settings window, the dictionary window and all other windows must never have the title `petlauncher`. A title such as `petlauncher Settings` is permitted: the extension compares the full title. |
-| Show | `present()` on the launcher window. Do not try to set a position. |
+| Show | From the hidden state, `set_visible(true)` on the launcher window, not `present()`. With no activation token, `present()` asks Mutter for a new token, and Mutter shows the busy pointer until the activation. The extension activates the window at the map. A show while the window shows already uses `present()`, which brings it to the front. Do not try to set a position. |
 | Hide | `set_visible(false)`, as in the test. GTK 4 then removes the window from Mutter, and each show makes a new window in Mutter. The extension moves each new window. |
-| Size | Give the launcher its width (R5, initial value 750) and its height before `present()`. The extension does not change the size. |
+| Size | Give the launcher its width (R5, initial value 750) and its height before the show. The extension does not change the size. |
 | Collapsed height | With no rows, the launcher is 64 logical pixels high. This is `COLLAPSED_HEIGHT` in `launcher.js` and in `crates/petlauncher/src/window.rs`: change the two together. The extension puts the top of the launcher where a launcher of this height is at the center of the work area. Thus the query line has the same place for each height of the window, and a launcher that shows with a kept query and its rows (R9) goes down from it. |
 | Size change after the show | The window grows downward: Mutter keeps the top left corner, also after a move by the owner. The extension does not move the window again. |
 | Move | The owner can move the launcher with the mouse (a `GtkWindowHandle` in the program). A show with the kept query of R9 opens at the moved place (ADR 0009). |
@@ -216,6 +216,17 @@ The unit test `test-launcher.js` has 15 tests for the position rule, the moved p
 | A kept query with no move, pointer on monitor 1 | `3593,568` |
 
 The order of the state and the map: each change of `kept-query-until` came to GNOME Shell 0.9 ms to 5.0 ms after the program set it (21 changes, mean 1.5 ms; the log of the program and the probe use the same monotonic clock). In these steps each change came 1129 ms or more before the next map of the launcher.
+
+#### Busy pointer
+
+The pointer changed to the busy pointer for a short time at each show of the launcher. `nested-test.sh` starts the test shell with `MUTTER_DEBUG=startup`, so `shell.log` has the lines "Setting busy cursor" and "Setting default cursor". A test with the debug build on 2026-11-26, 3 shows for each path:
+
+| Show | `present()` | `set_visible(true)` |
+|---|---|---|
+| Top bar icon, action `show`, `petlauncher toggle` | 9 of 9 shows: one startup sequence (an activation token) and the busy pointer for 20 ms to 22 ms | 0 of 9 shows: no startup sequence, no busy pointer |
+| The settings window, the dictionary window (not changed) | busy pointer for 21 ms each | busy pointer for 21 ms each |
+
+After the change, the text typed 0.3 s after `petlauncher toggle` was in the query line in 3 of 3 shows, also with no extension: Mutter gave the focus to the new window. A different window took the focus and the launcher hid (`FocusLoss`), and `petlauncher toggle` hid it. `move-steps.sh` checks that no show of the launcher sets the busy pointer, with the top bar icon, the action `show` and `petlauncher toggle`. Raw evidence: `~/daybook-evidence/petlauncher/2026-11-26-settings-nav/busy-pointer-before/`, `busy-pointer-after/`, `focus-with-extension/` and `focus-no-extension/` on the owner's computer.
 
 The move of requirement 7 itself (a test with the debug build): the frame moved from `1129,830` to `1369,650` with the pointer, the launcher kept the focus, and new rows made it higher with the same top left corner. A drag that starts in the entry did not move the window, and a double click on the search icon did not change the frame.
 

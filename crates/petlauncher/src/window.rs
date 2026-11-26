@@ -299,7 +299,10 @@ impl LauncherWindow {
         self.select_at_focus.set(kept.is_some());
         self.entry.grab_focus();
         log::debug(format_args!("show, kept query {kept:?}"));
-        self.window.present();
+        // Not present(): with no activation token, GTK asks Mutter for a new
+        // one, and Mutter shows the busy pointer until the activation. The
+        // GNOME Shell extension activates the window at its map.
+        self.window.set_visible(true);
     }
 
     /// `petlauncher toggle`: the global key.
