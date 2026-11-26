@@ -207,7 +207,7 @@ The unit test `test-launcher.js` has 21 tests for the position rules, the moved 
 
 #### Moved launcher (ADR 0009)
 
-`test/move-steps.sh` moves the launcher with the virtual pointer: a press on the search icon, five moves, and a release. Each case runs 3 times. Run with the release build on 2026-11-26: 61 checks, 61 pass. Raw evidence: `~/daybook-evidence/petlauncher/2026-11-26-settings-nav/final-move/` on the owner's computer, with `frames.tsv`, `events.json`, the program log and the screenshots `launcher-pin-button.png`, `launcher-pinned-m1.png` and `settings-general-position.png`.
+`test/move-steps.sh` moves the launcher with the virtual pointer: a press on the search icon, five moves, and a release. Each case runs 3 times. Run with the release build on 2026-11-26: 61 checks, 61 pass. The evidence directory of the run is not in the repository. It has `frames.tsv`, `events.json`, the program log and the screenshots `launcher-pin-button.png`, `launcher-pinned-m1.png` and `settings-general-position.png`.
 
 | Case | Frame on monitor 0 | Frame on monitor 1 |
 |---|---|---|
@@ -233,7 +233,7 @@ The pointer changed to the busy pointer for a short time at each show of the lau
 | Top bar icon, action `show`, `petlauncher toggle` | 9 of 9 shows: one startup sequence (an activation token) and the busy pointer for 20 ms to 22 ms | 0 of 9 shows: no startup sequence, no busy pointer |
 | The settings window, the dictionary window (not changed) | busy pointer for 21 ms each | busy pointer for 21 ms each |
 
-After the change, the text typed 0.3 s after `petlauncher toggle` was in the query line in 3 of 3 shows, also with no extension: Mutter gave the focus to the new window. A different window took the focus and the launcher hid (`FocusLoss`), and `petlauncher toggle` hid it. `move-steps.sh` checks that no show of the launcher sets the busy pointer, with the top bar icon, the action `show` and `petlauncher toggle`. Raw evidence: `~/daybook-evidence/petlauncher/2026-11-26-settings-nav/busy-pointer-before/`, `busy-pointer-after/`, `focus-with-extension/` and `focus-no-extension/` on the owner's computer.
+After the change, the text typed 0.3 s after `petlauncher toggle` was in the query line in 3 of 3 shows, also with no extension: Mutter gave the focus to the new window. A different window took the focus and the launcher hid (`FocusLoss`), and `petlauncher toggle` hid it. `move-steps.sh` checks that no show of the launcher sets the busy pointer, with the top bar icon, the action `show` and `petlauncher toggle`. The evidence directories of these runs are not in the repository.
 
 The move of requirement 7 itself (a test with the debug build): the frame moved from `1129,830` to `1369,650` with the pointer, the launcher kept the focus, and new rows made it higher with the same top left corner. A drag that starts in the entry did not move the window, and a double click on the search icon did not change the frame.
 
