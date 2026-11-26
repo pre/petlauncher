@@ -392,6 +392,11 @@ impl LauncherWindow {
                 self.show_selection();
             }
             Intent::Hide => self.hide(CloseReason::Escape),
+            Intent::Settings => {
+                log::debug("Ctrl+comma: settings window");
+                self.hide(CloseReason::Escape);
+                let _ = WidgetExt::activate_action(&self.window, "app.settings", None);
+            }
             Intent::Complete => {
                 let completion = self.model.borrow().completion().map(str::to_owned);
                 if let Some(text) = completion {

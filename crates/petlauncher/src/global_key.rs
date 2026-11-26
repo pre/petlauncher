@@ -107,132 +107,67 @@ pub fn install_once(
             FirstInstall::Installed(hotkey.to_owned())
         }
     };
-    write_marker(&marker, &result).map_err(|error| format!("{}: {error}", marker.display()))?;
+    write_marker(&marker, &result.log_line())?;
     Ok(result)
 }
 
-fn write_marker(marker: &Path, result: &FirstInstall) -> io::Result<()> {
-    if let Some(dir) = marker.parent() {
-        fs::create_dir_all(dir)?;
-    }
-    fs::write(
-        marker,
-        format!(
-            "The first installation of the global key of petlauncher is done (R4): {}.\n\
-             petlauncher does not write the key again while this file exists.\n",
-            result.log_line()
-        ),
-    )
+/// The owner set the global key in the settings window, or removed it
+/// (`None`). The first installation is then done: the program does not
+/// write the key of the setting `hotkey` again.
+pub fn record_owner_choice(state_dir: &Path, key: Option<&str>) -> Result<(), String> {
+    let line = match key {
+        Some(key) => format!("the owner set the global key {key} in the settings window"),
+        None => "the owner removed the global key in the settings window".to_owned(),
+    };
+    write_marker(&state_dir.join(MARKER), &line)
+}
+
+fn write_marker(marker: &Path, line: &str) -> Result<(), String> {
+    let write = || -> io::Result<()> {
+        if let Some(dir) = marker.parent() {
+            fs::create_dir_all(dir)?;
+        }
+        fs::write(
+            marker,
+            format!(
+                "The first installation of the global key of petlauncher is done (R4): {line}.\n\
+                 petlauncher does not write the key again while this file exists.\n"
+            ),
+        )
+    };
+    write().map_err(|error| format!("{}: {error}", marker.display()))
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use gtk::gio;
     use gtk::gio::prelude::*;
-    use std::path::PathBuf;
-    use std::process::Command;
-    use std::sync::{Once, OnceLock};
 
-    const LIST: &str = "org.gnome.settings-daemon.plugins.media-keys";
-    const ENTRY: &str = "org.gnome.settings-daemon.plugins.media-keys.custom-keybinding";
-    const WM: &str = "org.gnome.desktop.wm.keybindings";
-    const NOTES: &str =
-        "/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/scratch-notes/";
+    use crate::test_support::{SettingsBackendFixture, ENTRY, NOTES, WM};
 
-    fn gnome_tests() -> PathBuf {
-        [
-            env!("CARGO_MANIFEST_DIR"),
-            "..",
-            "petlauncher-gnome",
-            "tests",
-        ]
-        .iter()
-        .collect()
-    }
-
-    /// The memory GSettings backend, after a check that the default backend
-    /// of the test process is also the memory backend. No test reaches
-    /// dconf.
-    fn memory_backend() -> gio::SettingsBackend {
-        static ISOLATE: Once = Once::new();
-        ISOLATE.call_once(|| std::env::set_var("GSETTINGS_BACKEND", "memory"));
-        assert_eq!(
-            gio::SettingsBackend::default().type_().name(),
-            "GMemorySettingsBackend"
-        );
-        gio::memory_settings_backend_new()
-    }
-
-    /// The test schemas of `petlauncher-gnome`, compiled once, with their
-    /// XML files for the summaries of the keys.
-    fn schemas() -> gio::SettingsSchemaSource {
-        static DIR: OnceLock<tempfile::TempDir> = OnceLock::new();
-        let dir = DIR.get_or_init(|| {
-            let dir = tempfile::tempdir().unwrap();
-            let sources = gnome_tests().join("schemas");
-            let status = Command::new("glib-compile-schemas")
-                .arg(format!("--targetdir={}", dir.path().display()))
-                .arg(&sources)
-                .status()
-                .expect("glib-compile-schemas runs");
-            assert!(status.success());
-            for file in fs::read_dir(&sources).unwrap() {
-                let path = file.unwrap().path();
-                fs::copy(&path, dir.path().join(path.file_name().unwrap())).unwrap();
-            }
-            dir
-        });
-        gio::SettingsSchemaSource::from_directory(dir.path(), None, true).unwrap()
-    }
-
-    struct Fixture {
-        backend: gio::SettingsBackend,
-        source: gio::SettingsSchemaSource,
-        state: tempfile::TempDir,
-    }
+    /// A custom shortcut of a different program with Super+Space, and the
+    /// input source switch with no key.
+    struct Fixture(SettingsBackendFixture);
 
     impl Fixture {
-        /// A custom shortcut of a different program with Super+Space, and
-        /// the input source switch with no key.
         fn new() -> Self {
-            let fixture = Self {
-                backend: memory_backend(),
-                source: schemas(),
-                state: tempfile::tempdir().unwrap(),
-            };
-            fixture
-                .settings(LIST, None)
-                .set_strv("custom-keybindings", [NOTES])
-                .unwrap();
-            let notes = fixture.settings(ENTRY, Some(NOTES));
-            notes.set_string("name", "Show Scratch Notes").unwrap();
-            notes.set_string("command", "scratch-notes").unwrap();
-            notes.set_string("binding", "<Super>space").unwrap();
-            fixture
-                .settings(WM, None)
-                .set_strv("switch-input-source", [""; 0])
-                .unwrap();
-            fixture
+            Self(SettingsBackendFixture::with_one_conflict())
         }
 
-        fn settings(&self, schema: &str, path: Option<&str>) -> gio::Settings {
-            let schema = self.source.lookup(schema, false).unwrap();
-            gio::Settings::new_full(&schema, Some(&self.backend), path)
+        fn settings(&self, schema: &str, path: Option<&str>) -> gtk::gio::Settings {
+            self.0.settings(schema, path)
         }
 
         fn shortcuts(&self) -> CustomShortcuts {
-            CustomShortcuts::with_backend(&self.source, &self.backend)
-                .unwrap()
-                .with_catalog_dirs(vec![gnome_tests().join("keybindings")])
+            self.0.shortcuts()
         }
 
         fn install(&self, hotkey: &str) -> Result<FirstInstall, String> {
-            install_once(&self.shortcuts(), hotkey, self.state.path())
+            install_once(&self.shortcuts(), hotkey, self.0.state_dir())
         }
 
         fn marker(&self) -> bool {
-            self.state.path().join(MARKER).exists()
+            self.0.state_dir().join(MARKER).exists()
         }
     }
 
@@ -254,6 +189,32 @@ mod tests {
             "<Super>space"
         );
         assert!(!fixture.marker());
+    }
+
+    #[test]
+    fn a_choice_of_the_owner_ends_the_first_installation() {
+        let fixture = Fixture::new();
+
+        record_owner_choice(fixture.0.state_dir(), Some("<Control><Super>k")).unwrap();
+        let result = fixture.install("<Super>space").unwrap();
+
+        assert_eq!(result, FirstInstall::Done);
+        let text = fs::read_to_string(fixture.0.state_dir().join(MARKER)).unwrap();
+        assert!(
+            text.contains("the owner set the global key <Control><Super>k"),
+            "{text}"
+        );
+        assert_eq!(fixture.shortcuts().global_key(), None);
+    }
+
+    #[test]
+    fn a_removed_key_stays_removed_after_the_next_start() {
+        let fixture = Fixture::new();
+
+        record_owner_choice(fixture.0.state_dir(), None).unwrap();
+
+        assert_eq!(fixture.install("<Super>space").unwrap(), FirstInstall::Done);
+        assert!(fixture.marker());
     }
 
     #[test]

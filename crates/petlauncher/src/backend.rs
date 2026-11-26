@@ -86,6 +86,11 @@ impl Backend {
         Ok((backend, Events { results, updates }))
     }
 
+    /// The `Launcher`, for the settings window.
+    pub fn launcher(&self) -> &Launcher {
+        &self.launcher
+    }
+
     /// The dictionary of the `Launcher`, for the dictionary window. The
     /// launcher rows and the window use one open dictionary.
     pub fn dictionary(&self) -> LauncherDictionary {
@@ -226,57 +231,10 @@ fn exec_argument(text: &str) -> Option<String> {
 mod tests {
     use super::*;
     use petlauncher_core::{Mode, TypedPath};
-    use petlauncher_providers::Environment;
     use std::fs;
     use std::time::Duration;
 
-    struct Fixture {
-        _root: tempfile::TempDir,
-        dirs: Dirs,
-    }
-
-    impl Fixture {
-        fn new() -> Self {
-            let root = tempfile::tempdir().unwrap();
-            let home = root.path().join("home");
-            fs::create_dir_all(home.join("projects/notes")).unwrap();
-            let dirs = Dirs {
-                config: home.join(".config/petlauncher"),
-                cache: home.join(".cache/petlauncher"),
-                state: home.join(".local/state/petlauncher"),
-                applications: Environment {
-                    data_dirs: vec![root.path().join("data")],
-                    current_desktops: vec!["GNOME".to_owned()],
-                    locale: None,
-                    path: Vec::new(),
-                },
-                zoneinfo: root.path().join("zoneinfo"),
-                city_list: root.path().join("Locations.xml"),
-                home,
-            };
-            fs::create_dir_all(&dirs.config).unwrap();
-            Self { _root: root, dirs }
-        }
-
-        fn start(&self) -> (Backend, Events) {
-            let (backend, events) = Backend::start_with(
-                self.dirs.clone(),
-                Err(DesktopError("no desktop in the test".into())),
-                |hooks| {
-                    hooks.watch_config = false;
-                    hooks.outside_ignore_files = false;
-                    hooks.fetch_rates = Arc::new(offline_fetch);
-                },
-            )
-            .unwrap();
-            backend.launcher.wait_idle();
-            (backend, events)
-        }
-
-        fn home(&self, relative: &str) -> PathBuf {
-            self.dirs.home.join(relative)
-        }
-    }
+    use crate::test_support::LauncherFixture as Fixture;
 
     fn receive(receiver: &async_channel::Receiver<Results>) -> Results {
         let (sender, done) = std::sync::mpsc::channel();

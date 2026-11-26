@@ -15,6 +15,8 @@ pub enum Intent {
     Hide,
     /// Tab: complete the query with the selected row.
     Complete,
+    /// Ctrl+comma: open the settings window, as in many GNOME applications.
+    Settings,
 }
 
 /// The modifiers that change the meaning of a key. Caps Lock and Num Lock do
@@ -48,6 +50,7 @@ pub fn intent(keyval: gdk::Key, state: gdk::ModifierType) -> Option<Intent> {
         gdk::Key::Down | gdk::Key::KP_Down if none => Some(Intent::Down),
         gdk::Key::Escape if none => Some(Intent::Hide),
         gdk::Key::Tab if none => Some(Intent::Complete),
+        gdk::Key::comma if modifiers == gdk::ModifierType::CONTROL_MASK => Some(Intent::Settings),
         _ => None,
     }
 }
@@ -65,6 +68,19 @@ mod tests {
                 Some(Intent::Activate(Key::Enter))
             );
         }
+    }
+
+    #[test]
+    fn ctrl_comma_opens_the_settings_and_a_comma_is_text() {
+        assert_eq!(
+            intent(gdk::Key::comma, M::CONTROL_MASK),
+            Some(Intent::Settings)
+        );
+        assert_eq!(intent(gdk::Key::comma, M::empty()), None);
+        assert_eq!(
+            intent(gdk::Key::comma, M::CONTROL_MASK | M::SHIFT_MASK),
+            None
+        );
     }
 
     #[test]

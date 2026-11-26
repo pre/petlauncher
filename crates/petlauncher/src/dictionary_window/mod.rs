@@ -20,6 +20,7 @@ use std::rc::Rc;
 
 use gtk::gdk;
 
+pub use page::Problem as DataProblem;
 pub use source::DictionarySource;
 
 use crate::log;

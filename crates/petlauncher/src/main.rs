@@ -15,6 +15,8 @@ mod rows;
 mod selection;
 mod settings_window;
 mod stop;
+#[cfg(test)]
+mod test_support;
 mod visibility;
 mod window;
 mod worker;

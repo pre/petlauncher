@@ -4,7 +4,7 @@
 //! `Launcher`.
 
 use std::cell::{Cell, OnceCell, RefCell};
-use std::rc::Rc;
+use std::rc::{Rc, Weak};
 
 use adw::prelude::*;
 use gtk::{gdk, gio, glib};
@@ -17,7 +17,7 @@ use crate::cli::{self, Command};
 use crate::dictionary_window;
 use crate::global_key::{self, FirstInstall};
 use crate::log;
-use crate::settings_window;
+use crate::settings_window::{Host, SettingsWindow};
 use crate::window::LauncherWindow;
 
 pub const APP_ID: &str = "pet.repo.Petlauncher";
@@ -58,6 +58,8 @@ struct Program {
     global_key_pending: Cell<bool>,
     /// The last problems of the background work that went to the log.
     logged_problems: RefCell<Vec<String>>,
+    /// The settings window, made when it opens the first time.
+    settings_window: RefCell<Option<Rc<SettingsWindow>>>,
     /// The process stays after the window hides. When "Run in background"
     /// is off, `LauncherWindow::hide` stops it.
     _hold: gio::ApplicationHoldGuard,
@@ -90,6 +92,7 @@ impl Program {
             launcher,
             global_key_pending: Cell::new(true),
             logged_problems: RefCell::default(),
+            settings_window: RefCell::default(),
             _hold: app.hold(),
         });
         program.add_actions();
@@ -122,14 +125,12 @@ impl Program {
         let show = gio::ActionEntry::builder("show")
             .activate(move |_: &adw::Application, _, _| launcher.show())
             .build();
-        let config_dir = self.backend.config_dir().to_owned();
-        let backend = Rc::clone(&self.backend);
+        let weak = Rc::downgrade(self);
         let settings = gio::ActionEntry::builder("settings")
-            .activate(move |app: &adw::Application, _, _| {
-                let backend = Rc::clone(&backend);
-                settings_window::present(app, &config_dir, move || {
-                    backend.settings().run_in_background
-                });
+            .activate(move |_: &adw::Application, _, _| {
+                if let Some(program) = weak.upgrade() {
+                    program.present_settings();
+                }
             })
             .build();
         let quit = gio::ActionEntry::builder("quit")
@@ -174,6 +175,9 @@ impl Program {
         log::debug(format_args!("update {update:?}"));
         if let Update::Config(_) = update {
             self.apply_settings();
+            if let Some(window) = self.settings_window.borrow().as_ref() {
+                window.reload();
+            }
         }
         self.launcher.refresh();
         let problems = self.backend.problems();
@@ -183,6 +187,15 @@ impl Program {
             }
             self.logged_problems.replace(problems);
         }
+    }
+
+    /// Shows the settings window. There is one for the process.
+    fn present_settings(self: &Rc<Self>) {
+        let window = Rc::clone(self.settings_window.borrow_mut().get_or_insert_with(|| {
+            let host: Weak<dyn Host> = Rc::downgrade(self) as Weak<Program>;
+            SettingsWindow::new(&self.app, Rc::clone(&self.backend), host)
+        }));
+        window.present();
     }
 
     /// The settings that the program applies itself: the width of the
@@ -235,6 +248,39 @@ impl Program {
                 }
             }
             Err(error) => log::info(format_args!("global key: {error}")),
+        }
+    }
+}
+
+impl Host for Program {
+    fn settings_saved(&self) {
+        self.apply_settings();
+    }
+
+    fn global_key_changed(&self, key: Option<&str>) -> Result<(), String> {
+        self.global_key_pending.set(false);
+        self.launcher.set_global_key_notice(None);
+        let mut errors = Vec::new();
+        if let Err(error) = global_key::record_owner_choice(self.backend.state_dir(), key) {
+            errors.push(error);
+        }
+        // The editor writes nothing when the setting has the key already.
+        if let Err(error) = self
+            .backend
+            .launcher()
+            .edit_settings(|editor| editor.set_hotkey(key.unwrap_or_default()))
+        {
+            errors.push(format!(
+                "the setting hotkey in settings.toml was not changed: {error}"
+            ));
+        }
+        for error in &errors {
+            log::info(format_args!("global key: {error}"));
+        }
+        if errors.is_empty() {
+            Ok(())
+        } else {
+            Err(errors.join("; "))
         }
     }
 }

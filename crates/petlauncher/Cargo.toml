@@ -22,6 +22,7 @@ petlauncher-config = { path = "../petlauncher-config" }
 petlauncher-core = { path = "../petlauncher-core" }
 petlauncher-dict = { path = "../petlauncher-dict" }
 petlauncher-gnome = { path = "../petlauncher-gnome" }
+petlauncher-index = { path = "../petlauncher-index" }
 petlauncher-providers = { path = "../petlauncher-providers" }
 
 [dev-dependencies]
