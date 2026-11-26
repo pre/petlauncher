@@ -12,8 +12,8 @@ use std::time::{Duration, SystemTime};
 use petlauncher_apps::{Applications, DesktopEntry, Environment, SettingsPageRule, UsageStore};
 use petlauncher_calc::{load_cache, RatesError};
 use petlauncher_config::{
-    Browser, ConfigError, ConfigFile, ConfigStore, ConfigWatcher, EditError, FileSearch, Problem,
-    Reload, Settings, SettingsEditor, Shortcut, ShortcutsEditor,
+    ConfigError, ConfigFile, ConfigStore, ConfigWatcher, EditError, FileSearch, Problem, Reload,
+    Settings, SettingsEditor, Shortcut, ShortcutsEditor,
 };
 use petlauncher_core::{
     Action, CancelToken, Clock, CloseReason, Engine, KeptQuery, Key, Outcome, Results, Slot,
@@ -155,17 +155,6 @@ impl Hooks {
             outside_ignore_files: true,
         }
     }
-}
-
-/// How the program opens a URL in the browser of a shortcut (R12).
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum BrowserStart {
-    /// Start this desktop entry with the URL, for example with
-    /// `gio::DesktopAppInfo::launch_uris`. `command` is the `Exec` argument
-    /// list with the URL, for a program with no GIO.
-    DesktopEntry { path: PathBuf, command: Vec<String> },
-    /// Run this argument list. The URL is the last argument.
-    Command(Vec<String>),
 }
 
 /// The settings, the engine with all providers, the kept query, the usage
@@ -517,29 +506,6 @@ impl Launcher {
             .into_iter()
             .cloned()
             .collect()
-    }
-
-    /// How to open `url` with the browser of a shortcut (R12). `None` when
-    /// the desktop entry of `Browser::App` is not installed. A
-    /// `Browser::Command` runs with `sh`, with the URL as its last argument.
-    pub fn browser_start(&self, browser: &Browser, url: &str) -> Option<BrowserStart> {
-        match browser {
-            Browser::App(id) => {
-                let list = self.shared.apps.list();
-                let entry = list.get(id)?;
-                Some(BrowserStart::DesktopEntry {
-                    path: entry.path.clone(),
-                    command: entry.command(Some(url)),
-                })
-            }
-            Browser::Command(command) => Some(BrowserStart::Command(vec![
-                "sh".to_owned(),
-                "-c".to_owned(),
-                format!("{command} \"$1\""),
-                "sh".to_owned(),
-                url.to_owned(),
-            ])),
-        }
     }
 
     /// Waits until the background work that started has ended: the city

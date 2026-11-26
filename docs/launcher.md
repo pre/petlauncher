@@ -42,7 +42,6 @@ The rule for settings pages is knowledge of the desktop, so the desktop part giv
 | `problems()` | Any | Problems of the background work, as text. |
 | `dictionary_lookup(word)`, `dictionary_suggestions(text, limit)` | Any | For the dictionary window, through the same open dictionary. |
 | `browsers()` | Any | The installed browsers for the settings window (R12). |
-| `browser_start(browser, url)` | Any | How to open a URL in the browser of a shortcut. |
 | `wait_idle()` | Any | Waits for the background work. For tests and the example. |
 
 Do not call `window_closed` for a close that `executed` reported. If the program calls both, the second call decides the kept query, and R9 step 5 fails.
@@ -153,12 +152,7 @@ The file is written only when its text is different. Thus a new program path tak
 
 `browsers()` gives the desktop entries of the installed web browsers in the order of their names. The ID of an entry is the value for `browser = { app = "..." }`.
 
-`browser_start(browser, url)` gives:
-
-| Browser | Result |
-|---|---|
-| `Browser::App(id)` | `BrowserStart::DesktopEntry { path, command }`: the `.desktop` file for `gio::DesktopAppInfo`, and the `Exec` arguments with the URL. `None` when the entry is not installed. |
-| `Browser::Command(text)` | `BrowserStart::Command(["sh", "-c", "<text> \"$1\"", "sh", url])`. The shell reads the command, and the URL is its last argument. |
+The `Launcher` does not open a URL. The program gives `Action::OpenUrl` with the browser of the shortcut to `petlauncher_gnome::execute`: an installed browser starts with `gio::DesktopAppInfo`, and a browser command is split with the quoting rules of the shell and runs with no shell, with the URL as its last argument ([gnome-desktop.md](gnome-desktop.md)).
 
 ## Tests and example
 

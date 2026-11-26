@@ -6,9 +6,9 @@ mod common;
 use std::fs;
 
 use common::{search, settings_with_comments, titles, Fixture};
-use petlauncher_config::{Browser, ConfigFile, Reload, Shortcut};
+use petlauncher_config::{ConfigFile, Reload, Shortcut};
 use petlauncher_core::{Mode, RowKind};
-use petlauncher_providers::{Autostart, BrowserStart, ScopeError, Update};
+use petlauncher_providers::{Autostart, ScopeError, Update};
 
 fn settings(fixture: &Fixture, extra: &str) -> String {
     format!(
@@ -225,36 +225,6 @@ fn r12_the_browsers_are_the_installed_web_browsers_in_name_order() {
 
     let ids: Vec<&str> = browsers.iter().map(|entry| entry.id.as_str()).collect();
     assert_eq!(ids, ["firefox.desktop", "microsoft-edge.desktop"]);
-}
-
-#[test]
-fn r12_a_browser_of_a_shortcut_resolves_to_its_desktop_file_or_a_command() {
-    let fixture = Fixture::new();
-    let launcher = fixture.start();
-    let url = "https://example.com/a b";
-
-    let edge = launcher.browser_start(&Browser::App("microsoft-edge.desktop".into()), url);
-    let missing = launcher.browser_start(&Browser::App("missing.desktop".into()), url);
-    let command = launcher.browser_start(&Browser::Command("firefox -P work".into()), url);
-
-    assert_eq!(
-        edge,
-        Some(BrowserStart::DesktopEntry {
-            path: fixture.desktop_file("microsoft-edge.desktop"),
-            command: vec!["microsoft-edge".into(), url.into()],
-        })
-    );
-    assert_eq!(missing, None);
-    assert_eq!(
-        command,
-        Some(BrowserStart::Command(vec![
-            "sh".into(),
-            "-c".into(),
-            "firefox -P work \"$1\"".into(),
-            "sh".into(),
-            url.into(),
-        ]))
-    );
 }
 
 #[test]

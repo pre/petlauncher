@@ -19,7 +19,7 @@ mod sync;
 mod time;
 
 pub use autostart::Autostart;
-pub use launcher::{BrowserStart, Dirs, FetchRates, Hooks, Launcher, OnChange, Update};
+pub use launcher::{Dirs, FetchRates, Hooks, Launcher, OnChange, Update};
 pub use petlauncher_apps::{DesktopEntry, Environment, SettingsPageRule};
 pub use petlauncher_dict::Error as DictionaryError;
 pub use petlauncher_dict::{Entry as DictionaryEntry, Meaning, WordClass};
