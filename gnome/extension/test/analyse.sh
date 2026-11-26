@@ -26,7 +26,7 @@ collapsed=$(sed -nE 's/^export const COLLAPSED_HEIGHT = ([0-9]+);/\1/p' \
 
 {
 printf 'step\tmonitor\tseq\tplaced\tfinal\tcenter\tcentered\tpaints\tearly\tpositions\tfirst\tfocus\n'
-grep -v -e '-grown-' "$out/steps.txt" | while read -r step; do
+{ grep -v -e '-grown-' "$out/steps.txt" || true; } | while read -r step; do
     jq -n -r --arg step "$step" --argjson collapsed "$collapsed" --slurpfile events "$out/events.json" \
         --slurpfile state "$out/state-$step.json" '
         def rect: "\(.x),\(.y) \(.width)x\(.height)";

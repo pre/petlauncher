@@ -12,7 +12,7 @@ collapsed=$(sed -nE 's/^export const COLLAPSED_HEIGHT = ([0-9]+);/\1/p' \
     "$here/../petlauncher@repo.pet/launcher.js")
 
 launcher_steps() {
-    grep -E '^(launcher|tray-left-click)' "$out/steps.txt"
+    grep -E '^(launcher|tray-left-click)' "$out/steps.txt" || true
 }
 
 echo

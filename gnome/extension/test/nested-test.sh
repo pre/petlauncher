@@ -66,9 +66,11 @@ if [[ "${1:-}" != --inner ]]; then
         printf "[org/gnome/shell]\nenabled-extensions=['%s']\n" "$uuid" >>"$keyfile"
     fi
     if [[ -n $program ]]; then
-        # The steps of program-steps.sh begin with the R4 conflict.
+        # The steps of program-steps.sh and settings-steps.sh begin with the
+        # R4 conflict.
         conflict=""
-        [[ $steps == "$here/program-steps.sh" ]] && conflict=--key-conflict
+        [[ $steps == "$here/program-steps.sh" || $steps == "$here/settings-steps.sh" ]] &&
+            conflict=--key-conflict
         "$here/program-files.sh" "$root/home" ${conflict:+"$conflict"}
     fi
     # A fake system bus: the test shell must not reach logind, UPower or
