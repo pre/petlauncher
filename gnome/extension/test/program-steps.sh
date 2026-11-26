@@ -493,4 +493,40 @@ status=0
 end=$(date +%s%N)
 echo "run_in_background false: --hidden stopped with status $status after $(((end - start) / 1000000)) ms" \
     >>"$OUT/commands.txt"
+
+# R3 with "Run in background" off: a different window of the program keeps
+# the process after the launcher hides. The process stops 1 s after the
+# last window closes.
+window_shows() { shell_eval 'petProbe.state()' | jq -e --arg title "$1" 'any(.windows[]; .title == $title)'; }
+program_runs() {
+    gdbus call --session --dest org.freedesktop.DBus --object-path /org/freedesktop/DBus \
+        --method org.freedesktop.DBus.NameHasOwner $app | grep -q true
+}
+if grep -q wordnet_path "$config/settings.toml"; then
+    begin R3-dictionary-window-keeps-the-process
+    pointer_to_monitor 0
+    start_program
+    sleep 1.5
+    type_text 'd launcher'
+    keys Return
+    sleep 3
+    expect "the launcher hid" state launcher_hidden
+    expect "the dictionary window shows 3 s later" state window_shows 'petlauncher Dictionary'
+    expect "the process runs 3 s later" state program_runs
+    shot dictionary-window-no-background 'petlauncher Dictionary'
+    close_window 'petlauncher Dictionary'
+    expect "the process stops after the dictionary window closes" state wait_name_gone $app
+fi
+
+begin R3-settings-window-keeps-the-process
+pointer_to_monitor 0
+start_program
+sleep 1.5
+app_action $app settings
+sleep 3
+expect "the settings window took the focus and the launcher hid" state launcher_hidden
+expect "the settings window shows 3 s later" state window_shows 'petlauncher Settings'
+expect "the process runs 3 s later" state program_runs
+close_window 'petlauncher Settings'
+expect "the process stops after the settings window closes" state wait_name_gone $app
 set_setting run_in_background true

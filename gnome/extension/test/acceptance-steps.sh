@@ -327,6 +327,9 @@ if grep -q wordnet_path "$config/settings.toml"; then
     sleep 0.8
     expect "Enter gives OpenDictionary" "$log_file" logged 'OpenDictionary("launcher")'
     expect "the window closes" state launcher_hidden
+    expect "the dictionary window shows the word" "$log_file" logged 'dictionary window: open "launcher"'
+    shot dictionary-window 'petlauncher Dictionary'
+    close_window 'petlauncher Dictionary'
 fi
 
 # ---------------------------------------------------------------- R20
