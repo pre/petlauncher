@@ -15,8 +15,10 @@ The contract with the program, the test method and the test results are in [docs
 | `test/fake-petlauncher.js` | A gjs GTK 4 stand-in for the program, with the same application ID, windows and actions. |
 | `test/shell-probe.js` | The automation script of the test shell: it moves the pointer, types, reads the clipboard, and records the window positions and the painted frames. |
 | `test/analyse.sh` | Makes the result table from the evidence of `nested-test.sh`. |
-| `test/program-steps.sh` | The steps of `nested-test.sh --program`. |
-| `test/program-files.sh` | Writes the settings and the test files of those steps. |
-| `test/analyse-program.sh` | Makes the tables of the query line, the times and the actions of those steps. |
+| `test/program-steps.sh` | The steps of `nested-test.sh --program`, and the functions of the checks. |
+| `test/acceptance-steps.sh` | The acceptance steps of the requirements, with a check for each step. |
+| `test/program-files.sh` | Writes the settings, the recording fixture applications and the test files of those steps. |
+| `test/mock-services.js` | Recording mock services for the file manager, the session, the screen saver and logind. |
+| `test/analyse-program.sh` | Makes the tables of the query line, the times, the actions and the acceptance steps. |
 
 Install by hand: copy `petlauncher@repo.pet/` to `~/.local/share/gnome-shell/extensions/`, log out and log in, then run `gnome-extensions enable petlauncher@repo.pet`.

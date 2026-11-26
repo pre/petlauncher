@@ -227,7 +227,7 @@ The tests need `dbus-daemon`, `glib-compile-schemas`, `ps`, the MIME database `/
 | Programs | A child process with an empty environment and its own `HOME`, XDG directories, private session bus, `GSETTINGS_BACKEND=memory`, and no `WAYLAND_DISPLAY` or `DISPLAY`. Its `XDG_DATA_DIRS` has only the MIME database, so the applications of the system are not visible. Its only applications are recorders that write their arguments to a file. Its `mimeapps.list` makes them the default applications. |
 | Script | A script that writes its working directory, `$1` and its process group to a file, sleeps 2 s, and writes `survived`. The child process stops first. |
 
-Results on 2026-11-26: 63 tests pass, and 2 ignored tests are the child side of the separate processes. Line coverage 93.3 % (`cargo llvm-cov`). After the tests, `dconf dump` of the custom shortcuts was the same as before, and no test process stayed.
+Results on 2026-11-26, after the change to the conflict check of R4: 74 tests pass, and 2 ignored tests are the child side of the separate processes. Line coverage 94.3 % (`cargo llvm-cov`). After the tests, `dconf read` of the custom shortcuts of the owner gave the same entries and keys as before, with no petlauncher entry, and no test process stayed.
 
 ## Not tested on the live session
 
