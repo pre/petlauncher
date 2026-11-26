@@ -395,10 +395,10 @@ mod tests {
 
     #[test]
     fn the_contains_rank_puts_the_same_name_first() {
-        assert_eq!(contains_rank("h3", "h3"), Some(0));
-        assert_eq!(contains_rank("h3-image", "h3"), Some(1));
-        assert_eq!(contains_rank("old-h3", "h3"), Some(2));
-        assert_eq!(contains_rank("h4", "h3"), None);
+        assert_eq!(contains_rank("l0l3", "l0l3"), Some(0));
+        assert_eq!(contains_rank("l0l3-image", "l0l3"), Some(1));
+        assert_eq!(contains_rank("old-l0l3", "l0l3"), Some(2));
+        assert_eq!(contains_rank("h4", "l0l3"), None);
     }
 
     #[test]

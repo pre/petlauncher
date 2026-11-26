@@ -196,17 +196,17 @@ fn a_shorter_name_goes_before_a_newer_name_in_the_same_rank() {
 #[test]
 fn finds_directories_and_search_files_leaves_them_out() {
     let index = index(vec![
-        dir("/h/comfy-output/H3-IMAGE"),
-        file("/h/H3-IMAGE.txt"),
+        dir("/h/lolcat-output/L0L3-IMAGE"),
+        file("/h/L0L3-IMAGE.txt"),
     ]);
 
-    let all = index.search("h3-image", 10);
-    let files = index.search_files("h3-image", 10);
+    let all = index.search("l0l3-image", 10);
+    let files = index.search_files("l0l3-image", 10);
 
     assert_eq!(all.len(), 2);
     assert!(all[0].is_dir);
-    assert_eq!(all[0].path, PathBuf::from("/h/comfy-output/H3-IMAGE"));
-    assert_eq!(paths(files), ["/h/H3-IMAGE.txt"]);
+    assert_eq!(all[0].path, PathBuf::from("/h/lolcat-output/L0L3-IMAGE"));
+    assert_eq!(paths(files), ["/h/L0L3-IMAGE.txt"]);
 }
 
 #[test]

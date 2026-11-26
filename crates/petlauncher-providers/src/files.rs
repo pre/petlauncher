@@ -107,19 +107,22 @@ mod tests {
 
     #[test]
     fn a_directory_row_puts_its_path_in_the_query_line() {
-        let row = file_row(&entry("/home/u/comfy/H3-IMAGE", true), Path::new("/home/u"));
+        let row = file_row(
+            &entry("/home/u/lolcat/L0L3-IMAGE", true),
+            Path::new("/home/u"),
+        );
 
         assert_eq!(row.kind, RowKind::Directory);
-        assert_eq!(row.enter, Action::SetQuery("~/comfy/H3-IMAGE/".into()));
-        assert_eq!(row.local_file, Some("/home/u/comfy/H3-IMAGE".into()));
+        assert_eq!(row.enter, Action::SetQuery("~/lolcat/L0L3-IMAGE/".into()));
+        assert_eq!(row.local_file, Some("/home/u/lolcat/L0L3-IMAGE".into()));
     }
 
     #[test]
     fn a_path_outside_the_home_directory_shows_in_full() {
-        let row = file_row(&entry("/mnt/data/H3", true), Path::new("/home/u"));
+        let row = file_row(&entry("/mnt/data/L0L3", true), Path::new("/home/u"));
 
-        assert_eq!(row.subtitle, "/mnt/data/H3");
-        assert_eq!(row.enter, Action::SetQuery("/mnt/data/H3/".into()));
+        assert_eq!(row.subtitle, "/mnt/data/L0L3");
+        assert_eq!(row.enter, Action::SetQuery("/mnt/data/L0L3/".into()));
     }
 
     #[test]

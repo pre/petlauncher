@@ -92,14 +92,14 @@ fn a_name_with_a_shared_start_of_less_than_three_characters_is_not_a_near_match(
 #[test]
 fn a_mistake_in_a_folder_name_shows_the_matches_in_the_last_existing_folder() {
     let home = TempHome::new();
-    home.file("comfy-output/H3-IMAGE/a.png", 1);
+    home.file("lolcat-output/L0L3-IMAGE/a.png", 1);
 
-    let results = search(&home.engine(), "~/comfy-outptu/H3-IMAGE/");
+    let results = search(&home.engine(), "~/lolcat-outptu/L0L3-IMAGE/");
 
-    assert_eq!(titles(&results), ["comfy-output"]);
+    assert_eq!(titles(&results), ["lolcat-output"]);
     assert_eq!(
         results.rows[0].enter,
-        Action::SetQuery("~/comfy-output/".into())
+        Action::SetQuery("~/lolcat-output/".into())
     );
 }
 

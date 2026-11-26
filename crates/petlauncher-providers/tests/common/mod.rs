@@ -174,7 +174,7 @@ impl Fixture {
             "tmp/palette-zoom-in-tmp.png",
             "go/pkg/mod/palette-zoom-in-go.png",
             "dev/project/README.md",
-            "comfy-output/H3-IMAGE/image-001.png",
+            "lolcat-output/L0L3-IMAGE/image-001.png",
         ] {
             self.file(relative);
         }

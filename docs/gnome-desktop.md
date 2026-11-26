@@ -245,7 +245,7 @@ To restore them: `dconf load /org/gnome/settings-daemon/plugins/media-keys/ < ~/
 |---|---|---|---|
 | 1 | R2 | Run `gdbus call --session --dest org.freedesktop.FileManager1 --object-path /org/freedesktop/FileManager1 --method org.freedesktop.FileManager1.ShowItems "['file:///usr/share/applications/org.gnome.Nautilus.desktop']" ""` | Files opens `/usr/share/applications/` with `org.gnome.Nautilus.desktop` selected. This is the first call of `ShowItems` on this desktop. |
 | 2 | R1 | The same with `ShowFolders` and the URI of a folder with a space and `#` in its name, encoded as in "URIs" above. | Files opens that folder. |
-| 3 | R1 step 1 | In petlauncher, type `~/comfy-output/H3-IMAGE/` and press Enter. | Files opens the folder. The new window has the focus. |
+| 3 | R1 step 1 | In petlauncher, type `~/lolcat-output/L0L3-IMAGE/` and press Enter. | Files opens the folder. The new window has the focus. |
 | 4 | R1 step 4, R10 step 4 | Ctrl+Enter on a file row. | Files opens the folder with the file selected. |
 | 5 | R2 step 1 | Ctrl+Enter on an application row. | Files opens the folder of the `.desktop` file, with the file selected. The application does not start. |
 | 6 | R16 | Select Lock. | The screen locks. |

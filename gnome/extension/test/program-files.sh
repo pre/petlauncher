@@ -94,8 +94,8 @@ icon = "web-browser"
 [[shortcut]]
 name = "Spur pull request"
 keyword = "spur"
-cmd = "https://github.com/ROCm/spur/pull/%s"
-cmd_without_argument = "https://github.com/ROCm/spur/pulls"
+cmd = "https://github.com/LOLm/cat/pull/%s"
+cmd_without_argument = "https://github.com/LOLm/cat/pulls"
 
 [[shortcut]]
 name = "Search with Edge"
@@ -157,13 +157,13 @@ file pathtest/a-file-with-a-very-long-name-that-does-not-fit-in-the-width-of-the
 file pathtest/alpha-dir/inner.txt "2025-12-31 23:00"
 touch -d "2025-12-31 23:00" "$home/pathtest/alpha-dir"
 
-# R1: H3-IMAGE has three images, the newest is image-003.png. H3-VIDEO also
-# matches "H3". single has one file only.
-file comfy-output/H3-IMAGE/image-001.png "2026-02-01 10:00"
-file comfy-output/H3-IMAGE/image-002.png "2026-02-01 11:00"
-file comfy-output/H3-IMAGE/image-003.png "2026-02-01 12:00"
-file comfy-output/H3-VIDEO/clip.mp4 "2026-02-01 09:00"
-file comfy-output/single/only.png "2026-02-01 08:00"
+# R1: L0L3-IMAGE has three images, the newest is image-003.png. L0L3-VIDEO also
+# matches "L0L3". single has one file only.
+file lolcat-output/L0L3-IMAGE/image-001.png "2026-02-01 10:00"
+file lolcat-output/L0L3-IMAGE/image-002.png "2026-02-01 11:00"
+file lolcat-output/L0L3-IMAGE/image-003.png "2026-02-01 12:00"
+file lolcat-output/L0L3-VIDEO/clip.mp4 "2026-02-01 09:00"
+file lolcat-output/single/only.png "2026-02-01 08:00"
 
 # R10 and R14: the file of the requirements, and files that the ignore list
 # of the file search removes.

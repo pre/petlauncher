@@ -67,7 +67,7 @@ const WORDS: &[&str] = &[
     "playbook",
     "inventory",
     "kubeconfig",
-    "comfy",
+    "lolcat",
     "output",
     "image",
     "video",

@@ -183,7 +183,7 @@ Hidden entries (the name starts with `.`) do not show.
 
 ### Match of a path that does not exist
 
-The engine walks the parts of the path from the root. The last part that is an existing folder is the folder of the search. The next part is the typed name. The parts after it have no effect. For example, in `~/comfy-outptu/H3-IMAGE/` the folder is `~` and the typed name is `comfy-outptu`.
+The engine walks the parts of the path from the root. The last part that is an existing folder is the folder of the search. The next part is the typed name. The parts after it have no effect. For example, in `~/lolcat-outptu/L0L3-IMAGE/` the folder is `~` and the typed name is `lolcat-outptu`.
 
 1. The names that contain the typed name, with no letter case, come first. The same name comes before a name that starts with the typed name, and that comes before a name that contains it in another position. In each group the names come in name order.
 2. When no name contains the typed name, the near matches show: the names that start with the same 3 or more characters as the typed name. The longest shared start comes first. Thus `palette-zoom.html` shows `palette-zoom.png` first (R10 note).

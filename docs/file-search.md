@@ -61,7 +61,7 @@ The scan uses the parallel walker of the crate `ignore` from ripgrep.
 
 ### Directories
 
-The index contains directories as well as files, because a directory row is useful: `f H3-IMAGE` finds the folder `H3-IMAGE`. `search` gives files and directories. `search_files` gives only files and symbolic links. The two use the same index, so the choice costs nothing.
+The index contains directories as well as files, because a directory row is useful: `f L0L3-IMAGE` finds the folder `L0L3-IMAGE`. `search` gives files and directories. `search_files` gives only files and symbolic links. The two use the same index, so the choice costs nothing.
 
 ## Match and rank
 

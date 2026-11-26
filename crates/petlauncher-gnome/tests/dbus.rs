@@ -24,13 +24,13 @@ fn open_folder_calls_show_folders_with_the_file_uri_and_no_startup_id() {
     let file_manager = support::file_manager(&session, Reply::Empty);
 
     let opened = desktop(&session, &system)
-        .open_folder(Path::new("/home/owner/comfy-output/H3-IMAGE"))
+        .open_folder(Path::new("/home/owner/lolcat-output/L0L3-IMAGE"))
         .unwrap();
 
     assert_eq!(opened, FolderOpened::FileManager);
     assert_eq!(
         file_manager.calls(),
-        ["ShowFolders (ass) (['file:///home/owner/comfy-output/H3-IMAGE'], '')"]
+        ["ShowFolders (ass) (['file:///home/owner/lolcat-output/L0L3-IMAGE'], '')"]
     );
 }
 

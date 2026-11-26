@@ -9,75 +9,75 @@
 # FAIL, what was checked, and the evidence file. The functions of the checks
 # are in program-steps.sh.
 
-h3=$HOME/comfy-output/H3-IMAGE
-newest=$h3/image-003.png
+l0l3=$HOME/lolcat-output/L0L3-IMAGE
+newest=$l0l3/image-003.png
 palette=$HOME/daybook-evidence/kukka/font-size-keys-palette/screenshots-final/palette-zoom.png
 
 # ----------------------------------------------------------------- R1
 
 begin R1.1
-query '~/comfy-output/H3-IMAGE/'
+query '~/lolcat-output/L0L3-IMAGE/'
 expect "a typed directory has no selected row" "$log_file" rows_have "selected None"
 keys Return
 sleep 0.8
-expect "ShowFolders of H3-IMAGE" mock-calls.jsonl mock_call ShowFolders "$home_uri/comfy-output/H3-IMAGE\""
+expect "ShowFolders of L0L3-IMAGE" mock-calls.jsonl mock_call ShowFolders "$home_uri/lolcat-output/L0L3-IMAGE\""
 expect "no file opens" launches.log no_launch
 expect "the launcher closes" state launcher_hidden
 
 begin R1.2
-query '~/comfy-output/H3-IMAGE'
+query '~/lolcat-output/L0L3-IMAGE'
 keys Return
 sleep 0.8
-expect "ShowFolders of H3-IMAGE, not of comfy-output" mock-calls.jsonl mock_call ShowFolders "$home_uri/comfy-output/H3-IMAGE\""
+expect "ShowFolders of L0L3-IMAGE, not of lolcat-output" mock-calls.jsonl mock_call ShowFolders "$home_uri/lolcat-output/L0L3-IMAGE\""
 expect "no file opens" launches.log no_launch
 
 begin R1.3
-query '~/comfy-output/H3-IMAGE/'
+query '~/lolcat-output/L0L3-IMAGE/'
 keys Down Return
 expect "the newest file opens" launches.log launched "viewer | $newest"
 expect "no folder opens" mock-calls.jsonl no_mock_call
 
 begin R1.4
-query '~/comfy-output/H3-IMAGE/'
+query '~/lolcat-output/L0L3-IMAGE/'
 keys Down Control_L+Return
 sleep 0.8
-expect "ShowItems of the newest file" mock-calls.jsonl mock_call ShowItems "$home_uri/comfy-output/H3-IMAGE/image-003.png"
+expect "ShowItems of the newest file" mock-calls.jsonl mock_call ShowItems "$home_uri/lolcat-output/L0L3-IMAGE/image-003.png"
 
 begin R1.5
-query "$h3/image-002.png"
+query "$l0l3/image-002.png"
 keys Control_L+Return
 sleep 0.8
-expect "ShowItems of the typed file" mock-calls.jsonl mock_call ShowItems "$home_uri/comfy-output/H3-IMAGE/image-002.png"
+expect "ShowItems of the typed file" mock-calls.jsonl mock_call ShowItems "$home_uri/lolcat-output/L0L3-IMAGE/image-002.png"
 
 begin R1.6
-query "$h3/image-002.png"
+query "$l0l3/image-002.png"
 keys Return
-expect "the typed file opens" launches.log launched "viewer | $h3/image-002.png"
+expect "the typed file opens" launches.log launched "viewer | $l0l3/image-002.png"
 
 begin R1.7
-query '~/comfy-output/H3'
+query '~/lolcat-output/L0L3'
 keys Return
 sleep 0.8
-expect "the query changes to the first match, a directory" "$log_file" logged 'search "~/comfy-output/H3-IMAGE/"'
+expect "the query changes to the first match, a directory" "$log_file" logged 'search "~/lolcat-output/L0L3-IMAGE/"'
 expect "nothing opens" mock-calls.jsonl no_mock_call
 expect "the launcher stays" state launcher_visible
 keys Return
 sleep 0.8
-expect "the second Enter opens the directory" mock-calls.jsonl mock_call ShowFolders "$home_uri/comfy-output/H3-IMAGE\""
+expect "the second Enter opens the directory" mock-calls.jsonl mock_call ShowFolders "$home_uri/lolcat-output/L0L3-IMAGE\""
 
 begin R1.8
-query '~/comfy-output/H3-IM'
+query '~/lolcat-output/L0L3-IM'
 expect "one match is selected without Down" "$log_file" rows_have ": 1, selected Some(0)"
 keys Return
 sleep 0.8
-expect "Enter changes the query to the directory" "$log_file" logged 'search "~/comfy-output/H3-IMAGE/"'
+expect "Enter changes the query to the directory" "$log_file" logged 'search "~/lolcat-output/L0L3-IMAGE/"'
 hide_launcher
 
 begin R1.9
-query '~/comfy-output/single/'
+query '~/lolcat-output/single/'
 keys Return
 sleep 0.8
-expect "the directory with one file opens as a directory" mock-calls.jsonl mock_call ShowFolders "$home_uri/comfy-output/single\""
+expect "the directory with one file opens as a directory" mock-calls.jsonl mock_call ShowFolders "$home_uri/lolcat-output/single\""
 expect "the file does not open" launches.log no_launch
 
 # ----------------------------------------------------------------- R2
@@ -107,12 +107,12 @@ hide_launcher
 begin R7.1
 query 'spur 123'
 keys Return
-expect "the browser opens the pull request" launches.log launched "browser | https://github.com/ROCm/spur/pull/123"
+expect "the browser opens the pull request" launches.log launched "browser | https://github.com/LOLm/cat/pull/123"
 
 begin R7.2
 query 'spur'
 keys Return
-expect "the browser opens the list of pull requests" launches.log launched "browser | https://github.com/ROCm/spur/pulls"
+expect "the browser opens the list of pull requests" launches.log launched "browser | https://github.com/LOLm/cat/pulls"
 
 # ----------------------------------------------------------------- R8
 
@@ -269,7 +269,7 @@ hide_launcher
 # ---------------------------------------------------------------- R13
 
 begin R13
-query '~/comfy-output/H3-IMAGE/'
+query '~/lolcat-output/L0L3-IMAGE/'
 keys Down Shift_L+Return
 sleep 0.5
 expect "the clipboard has the full path" clipboard clipboard_is "$newest"

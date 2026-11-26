@@ -79,8 +79,8 @@ fn r7_a_shortcut_opens_target_a_with_an_argument_and_target_b_without_one() {
         "[[shortcut]]\n\
          name = \"Spur pull requests\"\n\
          keyword = \"spur\"\n\
-         cmd = \"https://github.com/ROCm/spur/pull/%s\"\n\
-         cmd_without_argument = \"https://github.com/ROCm/spur/pulls\"\n",
+         cmd = \"https://github.com/LOLm/cat/pull/%s\"\n\
+         cmd_without_argument = \"https://github.com/LOLm/cat/pulls\"\n",
     );
     let launcher = fixture.start();
 
@@ -95,13 +95,13 @@ fn r7_a_shortcut_opens_target_a_with_an_argument_and_target_b_without_one() {
         launcher
             .activate(&with_argument, with_argument.selected, Key::Enter)
             .action,
-        url("https://github.com/ROCm/spur/pull/123")
+        url("https://github.com/LOLm/cat/pull/123")
     );
     assert_eq!(
         launcher
             .activate(&without_argument, without_argument.selected, Key::Enter)
             .action,
-        url("https://github.com/ROCm/spur/pulls")
+        url("https://github.com/LOLm/cat/pulls")
     );
 }
 
@@ -267,8 +267,8 @@ fn r14_the_keys_on_a_file_row_work_as_on_other_file_rows() {
 fn r14_a_directory_row_changes_the_query_and_a_second_enter_opens_the_directory() {
     let fixture = Fixture::new();
     let launcher = fixture.start();
-    let results = search(&launcher, "f H3-IMAGE");
-    let directory = fixture.home("comfy-output/H3-IMAGE");
+    let results = search(&launcher, "f L0L3-IMAGE");
+    let directory = fixture.home("lolcat-output/L0L3-IMAGE");
 
     let enter = launcher.activate(&results, Some(0), Key::Enter);
     let ctrl = launcher.activate(&results, Some(0), Key::CtrlEnter);
@@ -279,7 +279,7 @@ fn r14_a_directory_row_changes_the_query_and_a_second_enter_opens_the_directory(
     let second_enter = launcher.activate(&typed, typed.selected, Key::Enter);
 
     assert_eq!(results.rows[0].kind, RowKind::Directory);
-    assert_eq!(query, "~/comfy-output/H3-IMAGE/");
+    assert_eq!(query, "~/lolcat-output/L0L3-IMAGE/");
     assert!(!enter.close);
     assert_eq!(ctrl.action, Action::OpenFolder(directory.clone()));
     assert_eq!(second_enter.action, Action::OpenFolder(directory));
@@ -534,12 +534,12 @@ fn r1_a_typed_directory_still_opens_in_the_file_manager() {
     let fixture = Fixture::new();
     let launcher = fixture.start();
 
-    let results = search(&launcher, "~/comfy-output/H3-IMAGE/");
+    let results = search(&launcher, "~/lolcat-output/L0L3-IMAGE/");
     let outcome = launcher.activate(&results, results.selected, Key::Enter);
 
     assert_eq!(results.mode, Mode::Path);
     assert_eq!(
         outcome.action,
-        Action::OpenFolder(fixture.home("comfy-output/H3-IMAGE"))
+        Action::OpenFolder(fixture.home("lolcat-output/L0L3-IMAGE"))
     );
 }
