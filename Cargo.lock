@@ -1040,9 +1040,12 @@ dependencies = [
  "async-channel",
  "gtk4",
  "libadwaita",
+ "petlauncher-calc",
  "petlauncher-config",
  "petlauncher-core",
  "petlauncher-dict",
+ "petlauncher-gnome",
+ "petlauncher-providers",
  "tempfile",
 ]
 
@@ -1100,6 +1103,7 @@ dependencies = [
  "libc",
  "petlauncher-apps",
  "petlauncher-core",
+ "roxmltree",
  "tempfile",
 ]
 
