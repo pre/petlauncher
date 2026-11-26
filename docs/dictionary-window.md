@@ -55,7 +55,7 @@ The "not found" page has the title "“launchr” is not in the dictionary" and 
 
 When the WordNet directory is missing, the page has the title "The dictionary is not installed", the cause, the path that was tried and the command `sudo apt install wordnet-base`. When a file cannot be read or has a different format, the title is "The dictionary cannot be read" and the command is `sudo apt install --reinstall wordnet-base`. All the text is selectable. A note tells that `dictionary.wordnet_path` in `settings.toml` can give a different directory.
 
-The window tries the data again at each word, so it works after the owner installs the package.
+After the owner installs the package, the window works again after the next show of the launcher (see "Data source").
 
 ## Keys
 
@@ -85,32 +85,15 @@ pub trait DictionarySource {
 }
 ```
 
-`Entry` and `Error` are the types of `petlauncher-dict`. The implementation `WordNet` opens `petlauncher_dict::Dictionary` from the setting `dictionary.wordnet_path` at the first word, and again when the setting changes. `~` in the setting is the home directory. A failed open is not kept.
-
-The program installs the window one time at its start (`app.rs`):
+`Entry` and `Error` are the types of `petlauncher-dict`. The program gives the dictionary of the `Launcher` of `petlauncher-providers` (`dictionary_lookup` and `dictionary_suggestions`, [launcher.md](launcher.md)) as the source, `LauncherDictionary` in `backend.rs`. Thus the launcher rows and the window use one open dictionary. The program installs the window one time at its start (`app.rs`):
 
 ```rust
-dictionary_window::install(app, Rc::new(wordnet), move || {
+dictionary_window::install(app, Rc::new(backend.dictionary()), move || {
     background.settings().run_in_background
 });
 ```
 
-The `Launcher` of `petlauncher-providers` has the same two functions with the same types (`dictionary_lookup`, `dictionary_suggestions`, [launcher.md](launcher.md)). To use the open dictionary of the `Launcher`, implement the trait for it and give it to `install` in place of `WordNet`:
-
-```rust
-struct LauncherDictionary(Arc<Launcher>);
-
-impl DictionarySource for LauncherDictionary {
-    fn lookup(&self, word: &str) -> Result<Vec<Entry>, Arc<Error>> {
-        self.0.dictionary_lookup(word)
-    }
-    fn suggestions(&self, text: &str, limit: usize) -> Result<Vec<String>, Arc<Error>> {
-        self.0.dictionary_suggestions(text, limit)
-    }
-}
-```
-
-Then the program has one open dictionary, not two, and `WordNet` can go.
+The `Launcher` opens the WordNet data of `dictionary.wordnet_path` at the first use, and again when the setting changes. `~` in the setting is the home directory. A failed open stays until the launcher window opens again. Thus, after the owner installs the data, the next show of the launcher makes the window work again, and a word in the search field of the window before that show still gives the "not installed" page.
 
 ## Thread
 
@@ -118,28 +101,19 @@ The window calls the source on the main thread, with no worker thread. Measured 
 
 | Call | Time |
 |---|---|
-| First open of the data by `WordNet` | 31 ms to 39 ms, one time for each process |
+| First open of the data | 31 ms to 39 ms, one time for each process. The launcher row of the word opened it already. |
 | A page: the lookup and the similar words | 0.02 ms (`launch pad`) to 0.38 ms (`run`, 57 meanings) |
 | The widgets of a page | 0.3 ms to 5.6 ms (`better`, 50 meanings) |
 
-`docs/dictionary.md` gives up to 16.5 ms for the first lookup of a word with many relations when the page cache of the operating system is empty, and 0.22 ms for the suggestions of one letter. All of these are less than one frame, except the first open. The first open comes when the window is made, which takes longer than the open, and with the `Launcher` the dictionary is open already because the launcher found the row in it. A worker thread would need a request queue, old answers to drop and a page with no text for a moment, for a gain of 30 ms one time.
+`docs/dictionary.md` gives up to 16.5 ms for the first lookup of a word with many relations when the page cache of the operating system is empty, and 0.22 ms for the suggestions of one letter. All of these are less than one frame, except the first open. The first open comes before the window: the launcher found the row in the dictionary. A worker thread would need a request queue, old answers to drop and a page with no text for a moment, for a gain of 30 ms one time.
 
 ## Run in background
 
-When "Run in background" is off and the dictionary window closes, the process stops 1 second later if no window of the program shows. The delay keeps the copied text on the clipboard, as for the launcher ([program.md](program.md)).
-
-Limit: the launcher stops the process 1 second after it hides when "Run in background" is off, with `app.quit()` in `stop_later` of `window.rs`. That stop also closes the dictionary window, so with that setting off the dictionary window stays only 1 second. The headless test shows this. The change that corrects it is in `window.rs`, which this module does not change: stop only when no window of the program shows.
-
-```rust
-// window.rs, stop_later
-if window.application().is_none_or(|app| app.windows().iter().any(|w| w.is_visible())) {
-    return;
-}
-```
+When "Run in background" is off, the process stops 1 second after a window hides, but only when no window of the program shows then (`stop.rs`). The launcher, the dictionary window and the settings window each keep the process. Thus the dictionary window stays when the launcher hides, and the process stops 1 second after the owner closes the dictionary window. The delay keeps the copied text on the clipboard, as for the launcher ([program.md](program.md)).
 
 ## Test
 
-The unit tests cover the plain modules: `history`, `keys`, `markup`, `page` and `source`. `source` uses the WordNet fixture of `petlauncher-dict`, and the others use a source in memory.
+The unit tests cover the plain modules: `history`, `keys`, `markup` and `page`, with a source in memory. The tests of `backend` read the WordNet fixture of `petlauncher-dict` through `LauncherDictionary`.
 
 ```sh
 TMPDIR=$HOME/tmp cargo test -p petlauncher

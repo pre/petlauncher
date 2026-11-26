@@ -14,7 +14,7 @@ use petlauncher_providers::Update;
 
 use crate::backend::{Backend, Events};
 use crate::cli::{self, Command};
-use crate::dictionary_window::{self, WordNet};
+use crate::dictionary_window;
 use crate::global_key::{self, FirstInstall};
 use crate::log;
 use crate::settings_window;
@@ -79,11 +79,8 @@ impl Program {
         let (backend, Events { results, updates }) = Backend::start(desktop)?;
         let backend = Rc::new(backend);
         let launcher = LauncherWindow::new(app, Rc::clone(&backend), results);
-        let (paths, background) = (Rc::clone(&backend), Rc::clone(&backend));
-        let wordnet = WordNet::new(glib::home_dir(), move || {
-            paths.settings().dictionary.wordnet_path.clone()
-        });
-        dictionary_window::install(app, Rc::new(wordnet), move || {
+        let background = Rc::clone(&backend);
+        dictionary_window::install(app, Rc::new(backend.dictionary()), move || {
             background.settings().run_in_background
         });
 

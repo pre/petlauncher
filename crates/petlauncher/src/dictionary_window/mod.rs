@@ -20,7 +20,7 @@ use std::rc::Rc;
 
 use gtk::gdk;
 
-pub use source::{DictionarySource, WordNet};
+pub use source::DictionarySource;
 
 use crate::log;
 use window::DictionaryWindow;

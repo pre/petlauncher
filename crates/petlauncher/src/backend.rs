@@ -12,10 +12,12 @@ use std::sync::Arc;
 use petlauncher_calc::RatesError;
 use petlauncher_config::{ConfigFile, Settings};
 use petlauncher_core::{Action, CloseReason, DesktopError, Key, Outcome, Results};
+use petlauncher_dict::{Entry, Error as DictionaryError};
 use petlauncher_gnome::GnomeDesktop;
 use petlauncher_providers::{Autostart, Dirs, Hooks, Launcher, Update};
 
 use crate::desktop;
+use crate::dictionary_window::DictionarySource;
 use crate::log;
 use crate::worker::SearchWorker;
 
@@ -84,6 +86,12 @@ impl Backend {
         Ok((backend, Events { results, updates }))
     }
 
+    /// The dictionary of the `Launcher`, for the dictionary window. The
+    /// launcher rows and the window use one open dictionary.
+    pub fn dictionary(&self) -> LauncherDictionary {
+        LauncherDictionary(Arc::clone(&self.launcher))
+    }
+
     /// The GNOME desktop, or the error that its start gave.
     pub fn desktop(&self) -> Result<&GnomeDesktop, DesktopError> {
         self.desktop.as_ref().map_err(Clone::clone)
@@ -149,6 +157,22 @@ impl Backend {
     /// The problems of the background work, for the log.
     pub fn problems(&self) -> Vec<String> {
         self.launcher.problems()
+    }
+}
+
+/// The dictionary of the `Launcher` as the source of the dictionary window.
+/// The `Launcher` opens the WordNet data of `dictionary.wordnet_path` at the
+/// first use and again after a change of the setting. It keeps a failed open
+/// until the launcher window opens again.
+pub struct LauncherDictionary(Arc<Launcher>);
+
+impl DictionarySource for LauncherDictionary {
+    fn lookup(&self, word: &str) -> Result<Vec<Entry>, Arc<DictionaryError>> {
+        self.0.dictionary_lookup(word)
+    }
+
+    fn suggestions(&self, text: &str, limit: usize) -> Result<Vec<String>, Arc<DictionaryError>> {
+        self.0.dictionary_suggestions(text, limit)
     }
 }
 
@@ -338,6 +362,45 @@ mod tests {
         assert_eq!(backend.config_dir(), fixture.dirs.config);
         assert_eq!(backend.state_dir(), fixture.dirs.state);
         assert!(backend.problems().iter().all(|problem| !problem.is_empty()));
+    }
+
+    #[test]
+    fn the_dictionary_window_reads_the_dictionary_of_the_launcher() {
+        let fixture = Fixture::new();
+        let wordnet = Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("../petlauncher-dict/tests/fixtures/wordnet");
+        fs::write(
+            ConfigFile::Settings.path_in(&fixture.dirs.config),
+            format!(
+                "[dictionary]\nwordnet_path = {:?}\n",
+                wordnet.display().to_string()
+            ),
+        )
+        .unwrap();
+        let (backend, _events) = fixture.start();
+        let dictionary = backend.dictionary();
+
+        let entries = dictionary.lookup("launcher").unwrap();
+        let suggestions = dictionary.suggestions("launch", 5).unwrap();
+
+        assert_eq!(entries[0].word, "launcher");
+        assert!(
+            suggestions.contains(&"launcher".to_owned()),
+            "{suggestions:?}"
+        );
+    }
+
+    #[test]
+    fn a_missing_dictionary_gives_an_error_to_the_window() {
+        let fixture = Fixture::new();
+        fs::write(
+            ConfigFile::Settings.path_in(&fixture.dirs.config),
+            "[dictionary]\nwordnet_path = \"/no/wordnet\"\n",
+        )
+        .unwrap();
+        let (backend, _events) = fixture.start();
+
+        assert!(backend.dictionary().lookup("launcher").is_err());
     }
 
     #[test]
