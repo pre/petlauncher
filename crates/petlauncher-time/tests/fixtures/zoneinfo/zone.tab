@@ -1,0 +1,19 @@
+# tzdb timezone descriptions (deprecated version)
+#
+# This file is a small test copy in the format of zone.tab.
+#
+AE	+2518+05518	Asia/Dubai
+FI	+6010+02458	Europe/Helsinki
+FR	+4852+00220	Europe/Paris
+GL	+6411-05144	America/Nuuk	most of Greenland
+IN	+2232+08822	Asia/Kolkata
+KI	+0152-15720	Pacific/Kiritimati	Line Islands
+MX	+2838-10605	America/Chihuahua	Chihuahua (most areas)
+RW	-0157+03004	Africa/Kigali
+US	+404251-0740023	America/New_York	Eastern (most areas)
+US	+415100-0873900	America/Chicago	Central (most areas)
+US	+394421-1045903	America/Denver	Mountain (most areas)
+US	+340308-1181434	America/Los_Angeles	Pacific
+US	+581807-1342511	America/Juneau	Alaska - Juneau area
+US	+211825-1575130	Pacific/Honolulu	Hawaii
+CA	+4734-05243	America/St_Johns	Newfoundland, Labrador (SE)

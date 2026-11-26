@@ -1,0 +1,265 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE gweather SYSTEM "locations.dtd">
+<!-- A small test copy in the format of libgweather-4 Locations.xml.
+     Some values differ from the real file on purpose, see the comments. -->
+<gweather format="1.0">
+  <named-timezone>
+    <_name>Coordinated Universal Time (UTC)</_name>
+    <timezones>
+      <timezone id="UTC" />
+    </timezones>
+    <tz-hint>UTC</tz-hint>
+    <code>@UTC</code>
+  </named-timezone>
+  <region>
+    <_name>Africa</_name>
+    <country>
+      <!-- RW - Rwanda -->
+      <_name>Rwanda</_name>
+      <iso-code>RW</iso-code>
+      <fips-code>RW</fips-code>
+      <timezones>
+        <timezone id="Africa/Kigali" />
+      </timezones>
+      <tz-hint>Africa/Kigali</tz-hint>
+      <location>
+        <name>Kigali</name>
+        <code>HRYR</code>
+        <coordinates>-1.94995 30.05885</coordinates>
+      </location>
+      <city>
+        <name>Kigali</name>
+        <coordinates>-1.94995 30.05885</coordinates>
+      </city>
+    </country>
+  </region>
+  <region>
+    <_name>Asia</_name>
+    <country>
+      <!-- IN - India -->
+      <_name>India</_name>
+      <iso-code>IN</iso-code>
+      <fips-code>IN</fips-code>
+      <timezones>
+        <timezone id="Asia/Kolkata" />
+      </timezones>
+      <tz-hint>Asia/Kolkata</tz-hint>
+      <state>
+        <!-- A state/province/territory in India -->
+        <_name>West Bengal</_name>
+        <fips-code>IN28</fips-code>
+        <city>
+          <!-- A city in West Bengal in India -->
+          <_name>Kolkata</_name>
+          <coordinates>22.569722 88.369722</coordinates>
+        </city>
+      </state>
+    </country>
+    <country>
+      <!-- KZ - Kazakhstan. The country has no tz-hint, so each city has one. -->
+      <_name>Kazakhstan</_name>
+      <iso-code>KZ</iso-code>
+      <fips-code>KZ</fips-code>
+      <timezones>
+        <timezone id="Asia/Almaty">
+          <_name>Eastern Kazakhstan</_name>
+          <obsoletes>Asia/Qyzylorda</obsoletes>
+        </timezone>
+        <timezone id="Asia/Aqtobe">
+          <_name>Western Kazakhstan</_name>
+        </timezone>
+      </timezones>
+      <city>
+        <_name>Aqtöbe</_name>
+        <coordinates>50.298056 57.181389</coordinates>
+        <tz-hint>Asia/Aqtobe</tz-hint>
+      </city>
+    </country>
+  </region>
+  <region>
+    <_name>Europe</_name>
+    <country>
+      <!-- FI - Finland -->
+      <_name>Finland</_name>
+      <iso-code>FI</iso-code>
+      <fips-code>FI</fips-code>
+      <timezones>
+        <timezone id="Europe/Helsinki" />
+      </timezones>
+      <tz-hint>Europe/Helsinki</tz-hint>
+      <location>
+        <name>Helsinki-Vantaa</name>
+        <code>EFHK</code>
+        <coordinates>60.316667 24.966667</coordinates>
+      </location>
+      <city>
+        <!-- A city in Finland -->
+        <_name>Helsinki</_name>
+        <coordinates>60.175556 24.934167</coordinates>
+      </city>
+    </country>
+    <country>
+      <!-- FR - France -->
+      <_name>France</_name>
+      <iso-code>FR</iso-code>
+      <fips-code>FR</fips-code>
+      <timezones>
+        <timezone id="Europe/Paris" />
+      </timezones>
+      <tz-hint>Europe/Paris</tz-hint>
+      <city>
+        <!-- A city in France -->
+        <_name msgctxt="City in France">Paris</_name>
+        <coordinates>48.866667 2.333333</coordinates>
+      </city>
+    </country>
+  </region>
+  <region>
+    <_name>North America</_name>
+    <country>
+      <!-- CA - Canada -->
+      <_name>Canada</_name>
+      <iso-code>CA</iso-code>
+      <fips-code>CA</fips-code>
+      <state>
+        <_name>Newfoundland and Labrador</_name>
+        <fips-code>CA05</fips-code>
+        <tz-hint>America/St_Johns</tz-hint>
+        <city>
+          <_name msgctxt="City in Newfoundland and Labrador, Canada">Saint John's</_name>
+          <coordinates>47.550000 -52.666667</coordinates>
+        </city>
+      </state>
+    </country>
+    <country>
+      <!-- GL - Greenland. The real file gives America/Godthab, which is
+           not in the system database of Ubuntu 24.04. -->
+      <_name>Greenland</_name>
+      <iso-code>GL</iso-code>
+      <fips-code>GL</fips-code>
+      <tz-hint>America/Nuuk</tz-hint>
+      <city>
+        <_name>Godthåb</_name>
+        <coordinates>64.183333 -51.750000</coordinates>
+      </city>
+    </country>
+    <country>
+      <!-- MX - Mexico -->
+      <_name>Mexico</_name>
+      <iso-code>MX</iso-code>
+      <fips-code>MX</fips-code>
+      <tz-hint>America/Mexico_City</tz-hint>
+      <state>
+        <!-- The hint is old: Chihuahua uses Central time since 2022. -->
+        <_name msgctxt="State in Mexico">Chihuahua</_name>
+        <fips-code>MX06</fips-code>
+        <tz-hint>America/Mazatlan</tz-hint>
+        <city>
+          <_name msgctxt="City in Chihuahua, Mexico">Chihuahua</_name>
+          <coordinates>28.633333 -106.083333</coordinates>
+        </city>
+      </state>
+    </country>
+    <country>
+      <!-- US - United States -->
+      <_name>United States</_name>
+      <iso-code>US</iso-code>
+      <fips-code>US</fips-code>
+      <timezones>
+        <timezone id="America/New_York" />
+        <timezone id="America/Chicago" />
+        <timezone id="America/Denver" />
+        <timezone id="America/Los_Angeles" />
+        <timezone id="America/Anchorage" />
+        <timezone id="Pacific/Honolulu" />
+      </timezones>
+      <state>
+        <_name>Alaska</_name>
+        <fips-code>US02</fips-code>
+        <tz-hint>America/Anchorage</tz-hint>
+        <city>
+          <_name msgctxt="City in Alaska, United States">Juneau</_name>
+          <coordinates>58.301944 -134.419722</coordinates>
+        </city>
+      </state>
+      <state>
+        <_name>Hawaii</_name>
+        <fips-code>US15</fips-code>
+        <tz-hint>Pacific/Honolulu</tz-hint>
+        <city>
+          <_name>Honolulu</_name>
+          <coordinates>21.306944 -157.858333</coordinates>
+        </city>
+      </state>
+      <state>
+        <_name>Illinois</_name>
+        <fips-code>US17</fips-code>
+        <tz-hint>America/Chicago</tz-hint>
+        <city>
+          <_name msgctxt="City in Illinois, United States">Paris</_name>
+          <coordinates>39.611146 -87.696137</coordinates>
+        </city>
+      </state>
+      <state>
+        <_name>Nevada</_name>
+        <fips-code>US32</fips-code>
+        <tz-hint>America/Los_Angeles</tz-hint>
+        <location>
+          <name>McCarran International Airport</name>
+          <code>KLAS</code>
+          <coordinates>36.078889 -115.155278</coordinates>
+        </location>
+        <city>
+          <!-- A city in Nevada in the United States -->
+          <_name msgctxt="City in Nevada, United States">Las Vegas</_name>
+          <coordinates>36.174971 -115.137223</coordinates>
+        </city>
+      </state>
+      <state>
+        <_name>New Mexico</_name>
+        <fips-code>US35</fips-code>
+        <tz-hint>America/Denver</tz-hint>
+        <city>
+          <_name msgctxt="City in New Mexico, United States">Las Vegas</_name>
+          <coordinates>35.593933 -105.223897</coordinates>
+        </city>
+      </state>
+      <state>
+        <_name>New York</_name>
+        <fips-code>US36</fips-code>
+        <tz-hint>America/New_York</tz-hint>
+        <city>
+          <_name msgctxt="City in New York, United States">New York</_name>
+          <coordinates>40.714269 -74.005973</coordinates>
+        </city>
+      </state>
+      <state>
+        <!-- Not in the real file: a city with a zone that no database has. -->
+        <_name>Test State</_name>
+        <tz-hint>Mars/Olympus_Mons</tz-hint>
+        <city>
+          <_name>Olympus</_name>
+          <coordinates>18.65 -133.8</coordinates>
+        </city>
+      </state>
+      <state>
+        <_name>Texas</_name>
+        <fips-code>US48</fips-code>
+        <tz-hint>America/Chicago</tz-hint>
+        <city>
+          <_name msgctxt="City in Texas, United States">Paris</_name>
+          <coordinates>33.660939 -95.555513</coordinates>
+        </city>
+      </state>
+      <state>
+        <_name>Wisconsin</_name>
+        <fips-code>US55</fips-code>
+        <tz-hint>America/Chicago</tz-hint>
+        <city>
+          <_name msgctxt="City in Wisconsin, United States">Juneau</_name>
+          <coordinates>43.405550 -88.705104</coordinates>
+        </city>
+      </state>
+    </country>
+  </region>
+</gweather>

@@ -1,0 +1,12 @@
+[package]
+name = "petlauncher-time"
+description = "Time in other time zones for the petlauncher query line"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+jiff = "1"
+roxmltree = "0.21"
+unicode-normalization = "0.1"
