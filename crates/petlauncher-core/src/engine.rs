@@ -6,15 +6,20 @@ use petlauncher_config::{Settings, Shortcut};
 
 use crate::cancel::CancelToken;
 use crate::contract::{Mode, Results, Row};
+use crate::matching::match_rank;
 use crate::path_mode;
 use crate::provider::{Provider, Slot};
 use crate::shortcuts;
 use crate::system::SystemCommands;
 
-/// The slots of the general search, in the order of the rows.
-const GENERAL_SLOTS: [Slot; 5] = [
-    Slot::Calculator,
-    Slot::Time,
+/// The slots of the general search whose rows come first: their rows are
+/// answers to the query.
+const ANSWER_SLOTS: [Slot; 2] = [Slot::Calculator, Slot::Time];
+
+/// The slots of the general search with named items, in the order of the
+/// rows. A row whose title matches the query comes before the rows that
+/// match only in other text, for example inside a word or in a keyword.
+const NAMED_SLOTS: [Slot; 3] = [
     Slot::Applications,
     Slot::SystemCommands,
     Slot::SettingsPages,
@@ -97,12 +102,21 @@ impl Engine {
         cancel: &CancelToken,
     ) -> Vec<Row> {
         let mut rows = shortcuts::keyword_rows(shortcuts, text, "", &self.home);
-        for slot in GENERAL_SLOTS {
+        for slot in ANSWER_SLOTS {
+            rows.extend(self.slot_rows(slot, text, settings, cancel));
+        }
+        let mut named = Vec::new();
+        for slot in NAMED_SLOTS {
             if slot == Slot::Applications && !settings.include_applications {
                 continue;
             }
-            rows.extend(self.slot_rows(slot, text, settings, cancel));
+            named.extend(self.slot_rows(slot, text, settings, cancel));
         }
+        let (title_matches, other_matches): (Vec<Row>, Vec<Row>) = named
+            .into_iter()
+            .partition(|row| match_rank(text, &row.title, &NO_KEYWORDS).is_some());
+        rows.extend(title_matches);
+        rows.extend(other_matches);
         if rows.is_empty() && !cancel.is_cancelled() {
             rows = shortcuts::fallback_rows(shortcuts, text, &self.home);
         }
@@ -133,6 +147,8 @@ fn split_keyword(text: &str) -> Option<(&str, &str)> {
     let end = text.find(char::is_whitespace)?;
     Some((&text[..end], text[end..].trim()))
 }
+
+const NO_KEYWORDS: [&str; 0] = [];
 
 fn results(query: &str, mode: Mode, rows: Vec<Row>) -> Results {
     Results {

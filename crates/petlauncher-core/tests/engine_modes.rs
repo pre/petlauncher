@@ -64,6 +64,74 @@ fn the_general_search_shows_calculation_time_applications_system_and_settings_in
     assert_eq!(results.rows[3].enter, Action::System(SystemCommand::Lock));
 }
 
+/// An application provider that gives fixed rows for each text, as a
+/// search that also matches inside words and in keywords does.
+fn applications(names: &'static [&'static str]) -> impl Provider {
+    move |_: &str, _: &Settings, _: &CancelToken| {
+        names
+            .iter()
+            .map(|name| Row::new(RowKind::Application, *name, Action::Nothing))
+            .collect()
+    }
+}
+
+#[test]
+fn a_system_command_with_the_query_in_its_title_comes_before_an_application_without_it() {
+    let home = TempHome::new();
+    let mut engine = home.engine();
+    engine.register(Slot::Applications, applications(&["Clocks"]));
+
+    let results = search(&engine, "lock");
+
+    assert_eq!(titles(&results), ["Lock", "Clocks"]);
+}
+
+#[test]
+fn the_rows_with_the_query_in_the_title_keep_the_order_of_the_slots() {
+    let home = TempHome::new();
+    let mut engine = home.engine();
+    engine
+        .register(Slot::Applications, applications(&["Slack", "Mouse"]))
+        .register(Slot::SettingsPages, echo(RowKind::SettingsPage, "Sound"));
+
+    let results = search(&engine, "s");
+
+    assert_eq!(
+        titles(&results),
+        [
+            "Slack",
+            "Suspend",
+            "Sound: s",
+            "Mouse",
+            "Lock",
+            "Log out",
+            "Power off"
+        ]
+    );
+}
+
+#[test]
+fn the_calculation_and_the_time_stay_first_without_the_query_in_their_titles() {
+    let home = TempHome::new();
+    let mut engine = home.engine();
+    engine
+        .register(Slot::Applications, applications(&["Pinta"]))
+        .register(
+            Slot::Calculator,
+            |_: &str, _: &Settings, _: &CancelToken| {
+                vec![Row::new(
+                    RowKind::Calculation,
+                    "3.14159265358979",
+                    Action::Nothing,
+                )]
+            },
+        );
+
+    let results = search(&engine, "pi");
+
+    assert_eq!(titles(&results), ["3.14159265358979", "Pinta"]);
+}
+
 #[test]
 fn the_general_search_gives_the_query_without_spaces_at_its_ends() {
     let home = TempHome::new();

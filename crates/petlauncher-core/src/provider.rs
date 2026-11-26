@@ -32,8 +32,10 @@ where
 }
 
 /// The place of a provider in the search. The general search shows the
-/// slots from `Calculator` to `SettingsPages` in this order. `FileSearch`
-/// and `Dictionary` answer only in their keyword mode.
+/// slots from `Calculator` to `SettingsPages` in this order, but in the
+/// slots from `Applications` to `SettingsPages` the rows whose title matches
+/// the query come first (`docs/core.md`). `FileSearch` and `Dictionary`
+/// answer only in their keyword mode.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub enum Slot {
     /// R8, R15.

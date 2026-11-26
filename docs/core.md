@@ -130,9 +130,11 @@ The rows come in this order:
 
 1. The shortcuts whose keyword is the full query, with no argument. Thus `spur` gives the `spur` row first (R7 step 2).
 2. `Slot::Calculator`, then `Slot::Time`.
-3. `Slot::Applications`, when "Include applications in search" is on (R3).
-4. `Slot::SystemCommands`, then `Slot::SettingsPages`.
+3. The rows of `Slot::Applications`, `Slot::SystemCommands` and `Slot::SettingsPages` whose title matches the query with `match_rank`: the title or a word of the title starts with the query. The applications are not asked when "Include applications in search" is off (R3).
+4. The other rows of the same three slots. They match only in other text, for example inside a word or in a keyword.
 5. When steps 1 to 4 give no rows: one row for each shortcut with `is_default_search`, with the full query as the argument (R6).
+
+In steps 3 and 4 the rows keep the order of the slots, and in each slot the order of the provider. Reason: the search of the applications also finds a text inside a word, so `lock` finds Clocks. Without step 4, Clocks comes before the system command Lock, and Enter starts Clocks.
 
 The first row is selected at the start.
 
