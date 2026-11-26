@@ -35,7 +35,7 @@ One instance of the program runs in each session. It is a `GApplication` with th
 
 ## Launcher window
 
-The launcher is an `AdwApplicationWindow` with the title `petlauncher`. It has no title bar. It has a query line, below it a line for each notice, and then the rows of the results: an icon, a title and a subtitle.
+The launcher is an `AdwApplicationWindow` with the title `petlauncher`. It has no title bar. It has a query line with a gear button at its right edge, below it a line for each notice, and then the rows of the results: an icon, a title and a subtitle. The gear does the same as Ctrl+comma. It takes no focus, so the typed keys stay in the query line.
 
 | Subject | Behaviour |
 |---|---|
@@ -87,7 +87,7 @@ The line below the query line shows these notices, the most urgent first:
 | Notice | When it goes |
 |---|---|
 | The error of the last action | A new text in the query line, or the next show. |
-| R4: the global key is not set, because a different key binding has it. The notice gives the name of the binding and its place in GNOME Settings, and says that the settings window can remove the key there. | The next show after the owner removed the key. |
+| R4: the global key is not set, because a different key binding has it. The notice gives the key, for example Super+Space, and the section and name of each binding with it. Its button "Open Global Key Settings" hides the launcher and opens the settings window on the Global Key page. The button takes no focus. | The owner sets or removes the key in the settings window, or the next show after the owner removed the key in GNOME Settings. |
 | R18: a settings file has an error, so its old values stay in effect. The notice gives the file, the line and the error. | The file is correct again. |
 
 ### Show and hide
@@ -119,16 +119,17 @@ At the start, and at each show until it is done, the program does the first inst
 2. When GNOME has a key for the petlauncher shortcut already, or the setting `hotkey` is empty, the program writes the marker file and changes nothing.
 3. Else it calls `CustomShortcuts::set_global_key_if_free(hotkey, "petlauncher toggle")`. With no conflict, GNOME gets the custom shortcut "Show petlauncher", and the program writes the marker file. With a conflict, the program writes nothing and no marker, and the launcher shows the notice of R4.
 
-The program never changes a different key binding. Only the settings window removes the key from a conflicting binding, with `CustomShortcuts::remove_key`, after an explicit action of the owner ([settings-window.md](settings-window.md)). When the owner sets or removes the key in the settings window, the program also writes the marker file and removes the notice. While the marker file exists, the program does not write the key again, so a key that the owner removed in GNOME Settings stays removed. Delete the file to do the first installation again.
+The program never changes a different key binding. Only the key dialog of the settings window removes the key from a conflicting binding, with `CustomShortcuts::remove_key`, after an explicit action of the owner ([settings-window.md](settings-window.md)). When the owner sets or removes the key in the settings window, the program also writes the marker file and removes the notice. While the marker file exists, the program does not write the key again, so a key that the owner removed in GNOME Settings stays removed. Delete the file to do the first installation again.
 
 ## Actions on the session bus
 
-The GNOME Shell extension uses these actions of the application. [gnome-extension.md](gnome-extension.md) gives the contract.
+The GNOME Shell extension uses the actions `show`, `settings`, `quit` and `tray-icon` of the application. [gnome-extension.md](gnome-extension.md) gives the contract. The launcher also uses `settings-page`.
 
 | Action | Function |
 |---|---|
 | `show` | Shows the launcher. When it shows already, it comes to the front, and the query does not change. |
 | `settings` | Shows the settings window ([settings-window.md](settings-window.md)). |
+| `settings-page` | Parameter: the name of a page, `'general'`, `'global-key'`, `'search'` or `'shortcuts'`. Shows the settings window with that page. With a different name, the window shows the page that it showed last. |
 | `quit` | Stops the program. |
 | `tray-icon` | `GnomeDesktop::add_actions` adds it. Disabled. Its boolean state is the setting `show_tray_icon`, and `set_tray_icon_visible` changes it after each change of `settings.toml`. |
 
