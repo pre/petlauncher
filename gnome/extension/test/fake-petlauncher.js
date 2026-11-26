@@ -21,6 +21,8 @@ import Gio from 'gi://Gio';
 import Gtk from 'gi://Gtk?version=4.0';
 import System from 'system';
 
+import {COLLAPSED_HEIGHT} from '../petlauncher@repo.pet/launcher.js';
+
 const options = {
     appId: 'pet.repo.Petlauncher',
     launcherTitle: 'petlauncher',
@@ -43,7 +45,8 @@ for (let i = 0; i < ARGV.length; i++) {
     }
 }
 
-const QUERY_HEIGHT = 48;
+// The launcher with no rows has the height of the contract.
+const QUERY_HEIGHT = COLLAPSED_HEIGHT;
 const RESULTS_HEIGHT = 300;
 
 function log(text) {

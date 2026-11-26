@@ -2,8 +2,8 @@
 // --automation-script). It is test equipment, not a part of the extension.
 //
 // - It sets the unsafe mode, so that org.gnome.Shell.Eval works.
-// - It makes a virtual pointer, so that the test can move the pointer and
-//   click.
+// - It makes a virtual pointer and a virtual keyboard, so that the test can
+//   move the pointer, click and type.
 // - It records the windows from their creation: each move and size change of
 //   the frame, the map, and each frame that a monitor paints while the window
 //   is visible (opacity above 0 and on that monitor), from the creation of
@@ -22,6 +22,8 @@ const PAINT_RECORD_MS = 2000;
 const TRAY_ROLE = 'petlauncher@repo.pet';
 
 let pointer = null;
+let keyboard = null;
+let clipboardText = null;
 let finish = null;
 const events = [];
 // MetaWindow -> time of its map, or null before the map.
@@ -158,10 +160,76 @@ function click(x, y, button) {
     pointer.notify_button(GLib.get_monotonic_time(), button, Clutter.ButtonState.RELEASED);
 }
 
+// Makes the virtual keyboard. Mutter adds the device a short time after this
+// call, and drops the events before that. Wait some time before keys().
+function prepareKeyboard() {
+    if (!keyboard) {
+        const seat = Clutter.get_default_backend().get_default_seat();
+        keyboard = seat.create_virtual_device(Clutter.InputDeviceType.KEYBOARD_DEVICE);
+    }
+}
+
+function keyboardDevice() {
+    if (!keyboard)
+        throw new Error('call petProbe.prepareKeyboard() first');
+    return keyboard;
+}
+
+function pressAndRelease(keyvals) {
+    const device = keyboardDevice();
+    for (const keyval of keyvals)
+        device.notify_keyval(GLib.get_monotonic_time(), keyval, Clutter.KeyState.PRESSED);
+    for (const keyval of [...keyvals].reverse())
+        device.notify_keyval(GLib.get_monotonic_time(), keyval, Clutter.KeyState.RELEASED);
+}
+
+// Presses keys one after the other. A name is a Clutter key name such as
+// 'Return' or 'Down'. 'Control_L+Return' holds Control_L during Return.
+function keys(...names) {
+    for (const name of names) {
+        pressAndRelease(name.split('+').map(part => {
+            const keyval = Clutter[`KEY_${part}`];
+            if (keyval === undefined)
+                throw new Error(`unknown key ${part}`);
+            return keyval;
+        }));
+    }
+}
+
+// Types text. The virtual keyboard adds Shift for a character such as ~.
+function type(text) {
+    for (const character of text)
+        pressAndRelease([Clutter.unicode_to_keysym(character.codePointAt(0))]);
+}
+
+// Starts to read the text of the clipboard. clipboard() gives it later.
+function readClipboard() {
+    clipboardText = null;
+    St.Clipboard.get_default().get_text(St.ClipboardType.CLIPBOARD, (_clipboard, text) => {
+        clipboardText = text;
+    });
+}
+
 async function screenshot(path) {
     const file = Gio.File.new_for_path(path);
     const stream = file.replace(null, false, Gio.FileCreateFlags.NONE, null);
     await new Shell.Screenshot().screenshot(false, stream);
+    stream.close(null);
+    return path;
+}
+
+// A screenshot of the frame of the window with this title, with a margin
+// for its shadow.
+async function screenshotWindow(title, path, margin = 32) {
+    const window = global.get_window_actors().map(a => a.meta_window)
+        .find(w => w.get_title() === title);
+    if (!window)
+        throw new Error(`no window with the title ${title}`);
+    const r = window.get_frame_rect();
+    const file = Gio.File.new_for_path(path);
+    const stream = file.replace(null, false, Gio.FileCreateFlags.NONE, null);
+    await new Shell.Screenshot().screenshot_area(r.x - margin, r.y - margin,
+        r.width + 2 * margin, r.height + 2 * margin, stream);
     stream.close(null);
     return path;
 }
@@ -239,7 +307,13 @@ export function init() {
         now,
         pointer: (x, y) => movePointer(x, y),
         click,
+        prepareKeyboard,
+        keys,
+        type,
+        readClipboard,
+        clipboard: () => clipboardText,
         screenshot,
+        screenshotWindow,
         applyLayout,
         displayState,
         finish: () => finish?.(),

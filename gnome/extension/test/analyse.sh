@@ -6,7 +6,11 @@
 #   seq        the Mutter window number (a new number is a new window)
 #   placed     the frame at the map, before the extension moves it (x,y wxh)
 #   final      the frame after the map
-#   center     the centered position in the work area of the pointer monitor
+#   center     the position of the rule in the work area of the pointer
+#              monitor. For the launcher: the top of a launcher with the
+#              collapsed height at the center, so that the query line has
+#              the same place for each window height (launcherPosition in
+#              launcher.js). For other windows: the center.
 #   centered   yes when final is at that position
 #   paints     the frames that a monitor painted with the window visible
 #   early      those frames that a monitor painted before the map
@@ -16,11 +20,14 @@
 # Then the tray icon states.
 set -euo pipefail
 out=$1
+here=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+collapsed=$(sed -nE 's/^export const COLLAPSED_HEIGHT = ([0-9]+);/\1/p' \
+    "$here/../petlauncher@repo.pet/launcher.js")
 
 {
 printf 'step\tmonitor\tseq\tplaced\tfinal\tcenter\tcentered\tpaints\tearly\tpositions\tfirst\tfocus\n'
 grep -v -e '-grown-' "$out/steps.txt" | while read -r step; do
-    jq -n -r --arg step "$step" --slurpfile events "$out/events.json" \
+    jq -n -r --arg step "$step" --argjson collapsed "$collapsed" --slurpfile events "$out/events.json" \
         --slurpfile state "$out/state-$step.json" '
         def rect: "\(.x),\(.y) \(.width)x\(.height)";
         def pos: "\(.x),\(.y)";
@@ -41,8 +48,10 @@ grep -v -e '-grown-' "$out/steps.txt" | while read -r step; do
           | $map.frame as $placed
           | ($s.windows[] | select(.seq == $seq)) as $window
           | $s.monitors[$monitor].workArea as $work
+          | (if $title == "petlauncher" then $collapsed else $window.frame.height end) as $height
           | {x: ($work.x + ([0, (($work.width - $window.frame.width) / 2 | floor)] | max)),
-             y: ($work.y + ([0, (($work.height - $window.frame.height) / 2 | floor)] | max))} as $center
+             y: ([($work.y + ([0, (($work.height - $height) / 2 | floor)] | max)),
+                 ($work.y + ([0, $work.height - $window.frame.height] | max))] | min)} as $center
           | [$own[] | select(.type == "paint")] as $paints
           | ($paints | map(.actor | pos) | unique) as $positions
           | [$step, $monitor, $seq, ($placed | rect), ($window.frame | rect), ($center | pos),
