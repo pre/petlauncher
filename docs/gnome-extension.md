@@ -2,7 +2,7 @@
 
 The extension `petlauncher@repo.pet` is the GNOME part of petlauncher. It does two things on GNOME Shell 46 on Wayland:
 
-1. It puts the launcher window at the center of the monitor with the pointer, each time the window shows (R11).
+1. It puts the launcher window at the center of the monitor with the pointer, each time the window shows (R11). The query line has the same place for each height of the window.
 2. It shows the petlauncher icon in the top bar (R3, "Show tray icon").
 
 On GNOME Wayland an application cannot set the position of its own window, and this desktop has no `StatusNotifierWatcher` for a tray icon. Thus these two functions are in the extension. The core of petlauncher does not know about the extension.
@@ -24,7 +24,8 @@ The program must obey this contract. The extension finds the program and its lau
 | Other windows | The settings window, the dictionary window and all other windows must never have the title `petlauncher`. A title such as `petlauncher Settings` is permitted: the extension compares the full title. |
 | Show | `present()` on the launcher window. Do not try to set a position. |
 | Hide | `set_visible(false)`, as in the test. GTK 4 then removes the window from Mutter, and each show makes a new window in Mutter. The extension moves each new window. |
-| Size | Give the launcher its width (R5, initial value 750) and its height before `present()`. The extension does not change the size. It centers the window with the size that the window has when GNOME shows it. Thus a launcher that shows with a kept query and its results (R9) is centered with its full height, and its query line is higher than for an empty query. |
+| Size | Give the launcher its width (R5, initial value 750) and its height before `present()`. The extension does not change the size. |
+| Collapsed height | With no rows, the launcher is 64 logical pixels high. This is `COLLAPSED_HEIGHT` in `launcher.js` and in `crates/petlauncher/src/window.rs`: change the two together. The extension puts the top of the launcher where a launcher of this height is at the center of the work area. Thus the query line has the same place for each height of the window, and a launcher that shows with a kept query and its rows (R9) goes down from it. |
 | Size change after the show | The window grows downward: Mutter keeps the top left corner. The extension does not move the window again. |
 | Window state | The launcher is not maximized and not full screen. |
 | Focus | The program does not need to ask for the focus. The extension activates the launcher window when it shows. |
@@ -72,7 +73,7 @@ gdbus call --session --dest pet.repo.Petlauncher --object-path /pet/repo/Petlaun
 1. The extension connects to the signal `map` of `global.window_manager`. GNOME Shell emits it after the first buffer of a window, and before it paints the window for the first time.
 2. In the signal, the extension accepts the window only when its Wayland application ID (`get_wm_class()`) is `pet.repo.Petlauncher` and its title is `petlauncher`.
 3. It gets the monitor with the pointer (`global.display.get_current_monitor()`) and the work area of that monitor. The work area is the monitor without the top bar.
-4. It calculates the top left corner that puts the frame of the window at the center of the work area. It rounds a half pixel down. When the window is larger than the work area, the top left corner stays in the work area.
+4. It calculates the top left corner of the frame (`launcherPosition` in `launcher.js`). The frame is at the horizontal center of the work area. Its top is the top of a launcher with the collapsed height at the vertical center. A launcher that goes below the work area moves up. The calculation rounds a half pixel down. When the window is larger than the work area, the top left corner stays in the work area.
 5. It moves the window with `move_frame()`. The size does not change, so Mutter does the move at once.
 6. It activates the window with `Main.activateWindow()`.
 
@@ -116,6 +117,7 @@ gnome/extension/test/nested-test.sh --out DIR                  # monitors 3008x1
 gnome/extension/test/nested-test.sh --owner-layout --out DIR   # 6016x3384 at scale 2, 2880x1800 at scale 1.5
 gnome/extension/test/nested-test.sh --no-animations --out DIR  # enable-animations false
 gnome/extension/test/nested-test.sh --no-extension --out DIR   # baseline with no extension
+gnome/extension/test/nested-test.sh --program target/release/petlauncher --out DIR  # the real program
 ```
 
 `nested-test.sh` starts a separate GNOME Shell with `gnome-shell --headless --wayland --no-x11` and one `--virtual-monitor` for each monitor. It shows nothing on the desktop. It isolates the test shell from the session of the user:
@@ -123,8 +125,11 @@ gnome/extension/test/nested-test.sh --no-extension --out DIR   # baseline with n
 - a new session bus (`dbus-run-session`) and a fake system bus, so that the test shell cannot reach logind, UPower or NetworkManager,
 - its own `HOME`, `XDG_RUNTIME_DIR` and XDG directories below `$HOME/tmp`,
 - `GSETTINGS_BACKEND=keyfile`, with the extension enabled only in that key file.
+- The services that the private bus starts, for example the portal backends, get the display of the test shell. Thus libadwaita reads the light or dark style through the Settings portal.
 
-The script installs the extension in the test `HOME`, starts `test/fake-petlauncher.js` (a gjs GTK 4 stand-in for the program with the same application ID, windows and actions), and does the test steps. `test/shell-probe.js` runs in the test shell as its automation script. It moves a virtual pointer, clicks, and records for each window: its creation, each move and size change, the map, and each frame that a monitor paints while the window is visible. `test/analyse.sh` makes the result table.
+The script installs the extension in the test `HOME`, starts `test/fake-petlauncher.js` (a gjs GTK 4 stand-in for the program with the same application ID, windows and actions), and does the test steps. `test/shell-probe.js` runs in the test shell as its automation script. It moves a virtual pointer, clicks, types with a virtual keyboard, reads the clipboard, and records for each window: its creation, each move and size change, the map, and each frame that a monitor paints while the window is visible. `test/analyse.sh` makes the result table.
+
+With `--program PATH`, the script runs the real program in place of the stand-in, with the steps of `test/program-steps.sh`. `test/program-files.sh` writes a settings directory and a tree of test files in the test `HOME`, and `test/analyse-program.sh` makes the tables of the query line, the times and the actions. [program.md](program.md) gives the results.
 
 The test with `--owner-layout` uses the layout of the owner's monitors: 6016x3384 at scale 2, and 2880x1800 at scale 1.5 at the logical position 3008,234. The live session of the owner uses the logical layout mode (read from `org.gnome.Mutter.DisplayConfig.GetCurrentState`). The test shell starts in the physical layout mode, so the script sets the Mutter feature `scale-monitor-framebuffer` in the test key file for this test.
 
@@ -132,37 +137,40 @@ The test with `--owner-layout` uses the layout of the owner's monitors: 6016x338
 
 Environment: GNOME Shell 46.0, Mutter 46.2, gjs 1.80.2, GTK 4.14.5, Ubuntu 24.04, on 2026-11-26.
 
-Raw evidence: `~/daybook-evidence/petlauncher/ext/` on the owner's computer, one directory for each run: `2026-11-26-logical-sizes`, `2026-11-26-owner-layout`, `2026-11-26-no-animations` and `2026-11-26-no-extension`. Each directory has `summary.txt` (the output of `analyse.sh`), `events.json` (the probe records), a `state-<step>.json` for each step, screenshots and the logs. The nested shell trial is in `nested-x11-trial/`.
+Raw evidence on the owner's computer, one directory for each run, each with `summary.txt` (the output of `analyse.sh`), `events.json` (the probe records), a `state-<step>.json` for each step, screenshots and the logs:
 
-Positions are `x,y` of the top left corner of the window frame, in logical pixels. In the default run the monitors are 0: `0,0 3008x1692` (work area from y 32, below the top bar) and 1: `3008,0 1920x1200`. The launcher is 750x48, and 750x348 with results.
+- `~/daybook-evidence/petlauncher/ui/`: the runs with the current position rule and the stand-in at 750x64, in `2026-11-26-stand-in-logical-sizes`, `2026-11-26-stand-in-owner-layout`, `2026-11-26-stand-in-no-animations` and `2026-11-26-stand-in-no-extension`. The runs of the real program are in the same directory ([program.md](program.md)).
+- `~/daybook-evidence/petlauncher/ext/`: the first runs of the extension, with a rule that centered the full height of the window and a stand-in at 750x48. The nested shell trial is in `nested-x11-trial/`.
 
-**Without the extension** (`2026-11-26-no-extension`), GNOME puts the launcher near the top left of the monitor with the pointer: `3217,8` on monitor 1 and `2,46` on monitor 0. Each show is a new window in Mutter (window numbers 1, 2, 3 and so on). At `window-created` the title and the application ID of the window are empty.
+Positions are `x,y` of the top left corner of the window frame, in logical pixels. In the default run the monitors are 0: `0,0 3008x1692` (work area from y 32, below the top bar) and 1: `3008,0 1920x1200`. The stand-in launcher is 750x64, and 750x364 with results.
 
-**With the extension** (`2026-11-26-logical-sizes`):
+**Without the extension** (`2026-11-26-stand-in-no-extension`), GNOME puts the launcher near the top left of the monitor with the pointer: `3217,10` on monitor 1 and `2,43` on monitor 0. Each show is a new window in Mutter (window numbers 1, 2, 3 and so on). At `window-created` the title and the application ID of the window are empty.
 
-| Step | Window | Pointer on | Before the move | After the map | Center of the work area | Result |
+**With the extension** (`2026-11-26-stand-in-logical-sizes`). "Place of the rule" is the position of `launcherPosition` for the monitor with the pointer:
+
+| Step | Window | Pointer on | Before the move | After the map | Place of the rule | Result |
 |---|---|---|---|---|---|---|
-| launcher-first-m1 | launcher, first show of the process | 1 | 3217,8 | 3593,576 | 3593,576 | centered |
-| launcher-m0 | launcher, shown again | 0 | 2,46 | 1129,838 | 1129,838 | centered |
-| launcher-again-m1 | launcher, shown again | 1 | 3217,8 | 3593,576 | 3593,576 | centered |
-| launcher-again-m0 | launcher, shown again | 0 | 2,46 | 1129,838 | 1129,838 | centered |
-| launcher-tall-m0 | launcher, 750x348 at the show | 0 | 2,120 | 1129,688 | 1129,688 | centered |
-| launcher-focus-m0-pointer-m1 | launcher; the focused window (dictionary) is on monitor 0 | 1 | 3217,8 | 3593,576 | 3593,576 | centered on the pointer monitor |
-| settings-m1 | `petlauncher Settings` | 1 | 3066,132 | 3066,132 | 3668,400 | not moved, as required |
-| dictionary-m0 | `Dictionary` | 0 | 1,84 | 1,84 | 1254,612 | not moved, as required |
-| late-title-m1 | launcher with its title 100 ms after the show | 1 | 3217,8 | 3217,8 | 3593,576 | not moved: the title must come before the show |
-| other-app-m1 | title `petlauncher`, application ID `org.example.Other` | 1 | 3217,8 | 3217,8 | 3593,576 | not moved, as required |
-| ext-disabled-m1 | launcher, extension disabled | 1 | 3217,8 | 3217,8 | 3593,576 | not moved: `disable()` works |
-| ext-enabled-again-m1 | launcher, extension enabled again | 1 | 3217,8 | 3593,576 | 3593,576 | centered |
-| tray-left-click | launcher, primary click on the icon | 0 | 2,46 | 1129,838 | 1129,838 | centered |
-| tray-menu-show | launcher, menu item "Show petlauncher" | 0 | 2,46 | 1129,838 | 1129,838 | centered |
-| tray-settings | `petlauncher Settings`, menu item "Settings" | 0 | 1,50 | 1,50 | 1204,662 | shown, not moved |
+| launcher-first-m1 | launcher, first show of the process | 1 | 3217,10 | 3593,568 | 3593,568 | centered |
+| launcher-m0 | launcher, shown again | 0 | 2,43 | 1129,830 | 1129,830 | centered |
+| launcher-again-m1 | launcher, shown again | 1 | 3217,10 | 3593,568 | 3593,568 | centered |
+| launcher-again-m0 | launcher, shown again | 0 | 2,43 | 1129,830 | 1129,830 | centered |
+| launcher-tall-m0 | launcher, 750x364 at the show | 0 | 2,98 | 1129,830 | 1129,830 | the same top as with no rows |
+| launcher-focus-m0-pointer-m1 | launcher; the focused window (dictionary) is on monitor 0 | 1 | 3217,10 | 3593,568 | 3593,568 | centered on the pointer monitor |
+| settings-m1 | `petlauncher Settings` | 1 | 3066,132 | 3066,132 | not for this window | not moved, as required |
+| dictionary-m0 | `Dictionary` | 0 | 1,84 | 1,84 | not for this window | not moved, as required |
+| late-title-m1 | launcher with its title 100 ms after the show | 1 | 3217,10 | 3217,10 | 3593,568 | not moved: the title must come before the show |
+| other-app-m1 | title `petlauncher`, application ID `org.example.Other` | 1 | 3217,10 | 3217,10 | 3593,568 | not moved, as required |
+| ext-disabled-m1 | launcher, extension disabled | 1 | 3217,10 | 3217,10 | 3593,568 | not moved: `disable()` works |
+| ext-enabled-again-m1 | launcher, extension enabled again | 1 | 3217,10 | 3593,568 | 3593,568 | centered |
+| tray-left-click | launcher, primary click on the icon | 0 | 2,43 | 1129,830 | 1129,830 | centered |
+| tray-menu-show | launcher, menu item "Show petlauncher" | 0 | 2,43 | 1129,830 | 1129,830 | centered |
+| tray-settings | `petlauncher Settings`, menu item "Settings" | 0 | 1,50 | 1,50 | not for this window | shown, not moved |
 
-When the results grow in a shown launcher (step launcher-grown-m1), the frame changes from `3593,576 750x48` to `3593,576 750x348`. The top left corner stays.
+When the results grow in a shown launcher (step launcher-grown-m1), the frame changes from `3593,568 750x64` to `3593,568 750x364`. The top left corner stays.
 
-**Owner layout** (`2026-11-26-owner-layout`, monitor 0 at scale 2, monitor 1 at scale 1.5 at `3008,234`): the same result for each step. On monitor 1 GNOME put the launcher at `3217,242` and the extension moved it to `3593,810`, the center of the work area `3008,234 1920x1200`. On monitor 0 the positions are the same as in the default run.
+**Owner layout** (`2026-11-26-stand-in-owner-layout`, monitor 0 at scale 2, monitor 1 at scale 1.5 at `3008,234`): the same result for each step. On monitor 1 GNOME put the launcher at `3217,244` and the extension moved it to `3593,802`, the place of the rule in the work area `3008,234 1920x1200`. On monitor 0 the positions are the same as in the default run.
 
-**No animations** (`2026-11-26-no-animations`): the same positions for each step.
+**No animations** (`2026-11-26-stand-in-no-animations`): the same positions for each step.
 
 **First frame.** In the three runs with the extension, for each show of the launcher:
 
@@ -170,7 +178,7 @@ When the results grow in a shown launcher (step launcher-grown-m1), the frame ch
 - the first painted frame had the window at its final position,
 - all painted frames had the same window position, so there is no jump.
 
-With the animations on, GNOME plays its open animation: the first frame has an opacity of 11 to 138 (of 255) and a small scale, and the window grows from the bottom center of its final frame. With the animations off, the first frame has the full opacity and the full size 750x48 at the final position.
+With the animations on, GNOME plays its open animation: the first frame has an opacity of 33 to 138 (of 255) and a small scale, and the window grows from the bottom center of its final frame. With the animations off, the first frame has the full opacity and the full size 750x64 at the final position.
 
 **Focus.** The launcher had the keyboard focus after each show.
 
@@ -190,7 +198,7 @@ With the animations on, GNOME plays its open animation: the first frame has an o
 
 The shell logs of all runs have no JavaScript error or warning.
 
-The unit test `test-launcher.js` has 9 tests for the position rule, the window rule and the icon rule. All pass.
+The unit test `test-launcher.js` has 11 tests for the position rule, the window rule and the icon rule. All pass.
 
 ### Limits and things that were not tested
 

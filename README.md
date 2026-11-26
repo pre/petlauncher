@@ -1,11 +1,12 @@
 # petlauncher
 
-An application launcher, calculator and snippet manager for GNOME on Wayland. Rust with GTK 4 and libadwaita. Status: in development, the windows are not written yet.
+An application launcher, calculator and snippet manager for GNOME on Wayland. Rust with GTK 4 and libadwaita. Status: in development. The launcher window works with the path mode, the shortcuts and the system commands. The other searches, the desktop actions, the settings window and the dictionary window are not joined yet.
 
 ## Parts
 
 | Path | Contents | Detail |
 |---|---|---|
+| `crates/petlauncher` | The program: command line, application, launcher window | [docs/program.md](docs/program.md) |
 | `crates/petlauncher-core` | Contract, query engine, path mode, keys, kept query | [docs/core.md](docs/core.md) |
 | `crates/petlauncher-config` | `settings.toml` and `shortcuts.toml` | [docs/settings.md](docs/settings.md) |
 | `crates/petlauncher-calc` | Calculator, percent, units, currencies | [docs/calculator.md](docs/calculator.md) |
@@ -18,6 +19,10 @@ An application launcher, calculator and snippet manager for GNOME on Wayland. Ru
 | `gnome/extension` | GNOME Shell extension: window position and top bar icon | [docs/gnome-extension.md](docs/gnome-extension.md) |
 
 The decisions that are hard to reverse are in [docs/adr](docs/adr/README.md).
+
+## Build
+
+Install the packages `libgtk-4-dev` and `libadwaita-1-dev`, then run `cargo build -p petlauncher --release`.
 
 ## Test
 
