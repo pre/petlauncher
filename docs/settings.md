@@ -43,6 +43,8 @@ editor, the window shows the new values.
 | `include_applications` | `true`: the installed applications are in the search results. | `true` |
 | `hotkey` | The key that shows and hides petlauncher, in the GNOME key syntax. GNOME keeps the key that is in effect. petlauncher writes this key to GNOME one time, at the first start, when no other key binding has it (ADR 0008). The settings window writes a new key to GNOME and to this setting. | `"<Super>space"` |
 | `window_width` | The width of the window in pixels, from 300 to 7680. | `750` |
+| `window_position` | The place of the window when it opens with no kept query, on the monitor with the pointer: `"center"` (the query line at the vertical center), `"upper-third"` (the query line at one third of the height), `"top"` (below the top bar), or `"custom"` for `custom_position`. The GNOME Shell extension puts the window there (ADR 0009). Without the extension, the setting has no effect. | `"center"` |
+| `custom_position` | The place of `"custom"`, as fractions of the screen without the top bar: `x` is the horizontal center of the window and `y` the top of the query line, each from 0 to 1. The same fractions apply on each monitor. The pin button of the launcher writes it, for example `{ x = 0.6, y = 0.36 }`. `"custom"` with no `custom_position` is a warning, and the window opens at the center. | none |
 | `keep_query` | How long petlauncher keeps the last query after the window closes: `"disabled"`, `"forever"`, a number of seconds such as `"30s"`, or a number of minutes such as `"5m"`. | `"30s"` |
 
 ### The table `[file_search]`
@@ -70,6 +72,8 @@ the new item. The same is true for `directories`.
 # My settings.
 
 window_width = 900      # wider than the initial value
+window_position = "custom"
+custom_position = { x = 0.6, y = 0.36 }
 keep_query = "5m"
 
 [file_search]

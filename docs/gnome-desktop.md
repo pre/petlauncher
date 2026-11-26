@@ -12,7 +12,7 @@ use petlauncher_gnome::{Executed, GnomeDesktop};
 
 // In the `startup` signal of the application:
 let desktop = GnomeDesktop::new()?;
-desktop.add_actions(&app);                                    // `tray-icon` (R3), `kept-query-until`
+desktop.add_actions(&app);                                    // `tray-icon` (R3) and the states of ADR 0009
 desktop.set_tray_icon_visible(settings.show_tray_icon)?;      // also after each change of the settings
 desktop.set_launch_context(Some(display.app_launch_context().upcast()));
 
@@ -50,12 +50,13 @@ let conflicts = shortcuts.set_global_key_if_free("<Super>space", petlauncher_gno
 
 | Item | Purpose |
 |---|---|
-| `GnomeDesktop` | Implements `Desktop`. Holds the session bus, the system bus, the custom shortcuts, the launch context and the actions `tray-icon` and `kept-query-until`. |
+| `GnomeDesktop` | Implements `Desktop`. Holds the session bus, the system bus, the custom shortcuts, the launch context and the actions `tray-icon`, `window-position` and `kept-query-until`. |
 | `GnomeDesktop::new()` | Connects to the session bus and opens the custom shortcuts. The system bus connects at the first suspend. |
 | `GnomeDesktop::with_parts(session, system, shortcuts)` | The same with given connections and shortcuts, for the tests. |
 | `GnomeDesktop::set_launch_context(context)` | The launch context for new windows. |
 | `GnomeDesktop::shortcuts()` | The `CustomShortcuts`, or the error that `new` got. |
-| `GnomeDesktop::add_actions(map)` | Adds the actions `tray-icon` and `kept-query-until` to the application. |
+| `GnomeDesktop::add_actions(map)` | Adds the actions `tray-icon`, `window-position` and `kept-query-until` to the application. |
+| `GnomeDesktop::set_window_position(position, custom)` | Sets the state of `window-position` (ADR 0009). |
 | `GnomeDesktop::set_kept_query_until(until)` | Sets the state of `kept-query-until` (ADR 0009). |
 | `GnomeDesktop::execute(action)` | `execute` with this desktop and its launch context. |
 | `execute(action, desktop, context)` | Executes an action. Has no GNOME code. |

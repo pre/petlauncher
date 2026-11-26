@@ -14,7 +14,7 @@ The window is not modal. A modal window gets the keys of the launcher: with the 
 
 | Page | Contents |
 |---|---|
-| General | The four switches of R3. The window width in pixels, from 300 to 7680 (R5). The time of the kept query (R9). The settings files, with a button that opens each file in the default text editor and a button that opens the settings folder. |
+| General | The four switches of R3. The window width in pixels, from 300 to 7680 (R5). The position of the window: Center, Upper third, Top, and Custom when `settings.toml` has a pinned place; with no pinned place the row tells how to get one ([settings.md](settings.md), ADR 0009). The time of the kept query (R9). The settings files, with a button that opens each file in the default text editor and a button that opens the settings folder. |
 | Global Key | One row with the key that GNOME has for petlauncher. Its button opens the dialog that records a new key (R4). |
 | Search | The file search: its keyword, the directories and the ignore list (R14, R21). The dictionary: its keyword, the folder of the WordNet data and the state of the data (R19). |
 | Shortcuts | The list of the shortcuts with add, change, remove and move (R6, R7, R12). A shortcut opens in a form. |

@@ -1,6 +1,6 @@
 # The GNOME Shell extension uses only the GApplication interface of the program
 
-Status: accepted. ADR 0007 changes the position of the launcher. ADR 0009 extends it with the action state `kept-query-until`.
+Status: accepted. ADR 0007 changes the position of the launcher. ADR 0009 extends it with the actions `window-position`, `kept-query-until` and `launcher-moved`.
 
 On GNOME Wayland a program cannot set the position of its window, so a GNOME Shell extension moves the launcher window. The extension moves the window whose Wayland application ID is `pet.repo.Petlauncher` and whose title is exactly `petlauncher`. For the top bar icon it calls the actions `show`, `settings` and `quit`, and reads the boolean state of `tray-icon`, through `org.gtk.Actions`. Reason: the program needs no D-Bus interface of its own, and a test on GNOME Shell 46 showed that the title and the application ID are present when the window shows.
 
