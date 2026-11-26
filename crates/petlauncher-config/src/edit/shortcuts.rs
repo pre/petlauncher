@@ -3,7 +3,7 @@ use std::path::Path;
 use toml_edit::{ArrayOfTables, DocumentMut, InlineTable, Item, Table, Value};
 
 use super::format::{has_comment, set_value, split_prefix};
-use crate::error::{ConfigError, EditError};
+use crate::error::EditError;
 use crate::load::{deserialize, ShortcutsFile};
 use crate::model::{Browser, Shortcut};
 
@@ -20,7 +20,7 @@ pub(crate) const SHORTCUTS_TEMPLATE: &str = include_str!("../templates/shortcuts
 /// at the start of the file stays at the start.
 ///
 /// A file that has the shortcuts as an inline list, `shortcut = [{ ... }]`,
-/// gets one `[[shortcut]]` block for each shortcut at its first change.
+/// gives [`EditError::InlineShortcuts`].
 #[derive(Debug, Clone)]
 pub struct ShortcutsEditor {
     document: DocumentMut,
@@ -36,16 +36,14 @@ impl ShortcutsEditor {
 
     /// An editor for the text of an existing file. A TOML error or a
     /// value with the wrong type gives an error.
-    pub(crate) fn parse(text: &str, path: &Path) -> Result<Self, ConfigError> {
+    pub(crate) fn parse(text: &str, path: &Path) -> Result<Self, EditError> {
         let (document, file) = deserialize::<ShortcutsFile>(text, path)?;
-        let mut document = document.into_mut();
-        if let Some(item) = document.get_mut("shortcut") {
-            if !item.is_array_of_tables() {
-                let inline = std::mem::take(item);
-                *item = inline
-                    .into_array_of_tables()
-                    .map_or_else(|same| same, Item::ArrayOfTables);
-            }
+        let document = document.into_mut();
+        if document
+            .get("shortcut")
+            .is_some_and(|item| !item.is_array_of_tables())
+        {
+            return Err(EditError::InlineShortcuts);
         }
         Ok(Self {
             document,
@@ -581,18 +579,16 @@ run_without_argument = true
     }
 
     #[test]
-    fn changes_shortcuts_that_the_file_has_as_an_inline_list() {
-        let text = "shortcut = [\n  { name = \"A\", keyword = \"a\", cmd = \"x\" },\n  { name = \"B\", keyword = \"b\", cmd = \"y\" },\n]\n";
-        let mut editor = ShortcutsEditor::parse(text, Path::new("s")).expect("valid text");
+    fn does_not_change_shortcuts_that_the_file_has_as_an_inline_list() {
+        let text =
+            "# mine\nshortcut = [\n  { name = \"A\", keyword = \"a\", cmd = \"x\" }, # a\n]\n";
 
-        editor.add(&shortcut("C", "c", "z"));
-        editor.remove(0).expect("remove");
+        let result = ShortcutsEditor::parse(text, Path::new("shortcuts.toml"));
 
-        let keywords: Vec<String> = reparsed(&editor)
-            .into_iter()
-            .map(|shortcut| shortcut.keyword)
-            .collect();
-        assert_eq!(keywords, ["b", "c"]);
+        assert_eq!(
+            result.map(|editor| editor.text()),
+            Err(EditError::InlineShortcuts)
+        );
     }
 
     #[test]

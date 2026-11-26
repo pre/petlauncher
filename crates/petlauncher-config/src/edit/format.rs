@@ -52,11 +52,6 @@ pub(super) fn push_entry(array: &mut Array, entry: &str) {
 /// the line before it, and the comment lines above the entry follow.
 pub(super) fn remove_entry(array: &mut Array, index: usize) {
     let removed = prefix_of(&array.remove(index)).to_owned();
-    if array.is_empty() {
-        array.set_trailing("");
-        array.set_trailing_comma(false);
-        return;
-    }
     let (end_of_line_before, _) = split_first_line(&removed);
     if let Some(next) = array.get_mut(index) {
         let next_prefix = prefix_of(next).to_owned();
@@ -73,6 +68,12 @@ pub(super) fn remove_entry(array: &mut Array, index: usize) {
                 "{end_of_line_before}{}",
                 split_first_line(&trailing).1
             ));
+        }
+    }
+    if array.is_empty() {
+        array.set_trailing_comma(false);
+        if !has_comment(array.trailing().as_str().unwrap_or_default()) {
+            array.set_trailing("");
         }
     }
 }
@@ -267,6 +268,16 @@ mod tests {
         remove_entry(array(&mut document, "a"), 0);
 
         assert_eq!(document.to_string(), "a = []\n");
+    }
+
+    #[test]
+    fn removes_the_only_entry_and_keeps_a_comment_line_of_the_list() {
+        let mut document = parse("a = [\n    \"x\", # about x\n    # \"old\", keep me\n]\n");
+
+        remove_entry(array(&mut document, "a"), 0);
+
+        assert_eq!(document.to_string(), "a = [\n    # \"old\", keep me\n]\n");
+        assert_eq!(document["a"].as_array().map(Array::len), Some(0));
     }
 
     #[test]

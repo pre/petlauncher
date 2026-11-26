@@ -100,6 +100,11 @@ pub enum EditError {
     /// shortcut number can refer to a different shortcut. The store read
     /// the file again. Show the new list and do the change again.
     FileChanged,
+    /// `shortcuts.toml` has the shortcuts as an inline list,
+    /// `shortcut = [{ ... }]`. A change of that list cannot keep its
+    /// comments, so the settings window does not change it. The owner can
+    /// write one `[[shortcut]]` block for each shortcut.
+    InlineShortcuts,
 }
 
 impl fmt::Display for EditError {
@@ -116,6 +121,10 @@ impl fmt::Display for EditError {
                 index + 1
             ),
             Self::FileChanged => f.write_str("shortcuts.toml changed on the disk, try again"),
+            Self::InlineShortcuts => f.write_str(
+                "shortcuts.toml has the shortcuts as an inline list. \
+                 Write one [[shortcut]] block for each shortcut",
+            ),
         }
     }
 }

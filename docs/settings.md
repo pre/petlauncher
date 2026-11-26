@@ -103,6 +103,16 @@ order of the shortcuts.
 A script with more than one line is easy to read as a TOML multi-line string,
 between `"""` and `"""`.
 
+When the settings window moves or removes a shortcut, the comment lines
+directly above its `[[shortcut]]` line go with it. A comment that an empty
+line separates from the `[[shortcut]]` line stays at its place in the file.
+Thus, write a comment about a shortcut directly above its `[[shortcut]]`
+line.
+
+The settings window does not change a file that has the shortcuts as an
+inline list, `shortcut = [{ ... }]`, because such a change cannot keep the
+comments in the list. petlauncher reads such a file correctly.
+
 ### Example
 
 ```toml

@@ -527,6 +527,23 @@ mod tests {
     }
 
     #[test]
+    fn reads_an_inline_list_of_shortcuts_but_does_not_change_it() {
+        let fixture = Fixture::new();
+        let inline = "shortcut = [{ name = \"A\", keyword = \"a\", cmd = \"x\" }] # mine\n";
+        fixture.write(ConfigFile::Shortcuts, inline);
+        let mut store = fixture.store();
+
+        let result = store.edit_shortcuts(|editor| {
+            editor.add(&map_shortcut());
+            Ok(())
+        });
+
+        assert_eq!(store.shortcuts()[0].keyword, "a");
+        assert_eq!(result, Err(EditError::InlineShortcuts));
+        assert_eq!(fixture.read(ConfigFile::Shortcuts).as_deref(), Some(inline));
+    }
+
+    #[test]
     fn gives_the_error_of_the_change_and_writes_nothing() {
         let fixture = Fixture::new();
         fixture.write(ConfigFile::Shortcuts, SHORTCUTS);
