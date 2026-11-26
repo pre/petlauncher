@@ -311,6 +311,16 @@ export function init() {
         });
     });
     global.stage.connect('after-paint', (_stage, view) => recordPaint(view));
+    // ADR 0009: each change of an action state of the program, to compare
+    // its time with the map of the launcher.
+    Gio.DBus.session.signal_subscribe(null, 'org.gtk.Actions', 'Changed',
+        '/pet/repo/Petlauncher', null, Gio.DBusSignalFlags.NONE,
+        (_connection, _sender, _path, _interface, _signal, parameters) => {
+            const [, , states] = parameters.deepUnpack();
+            const unpacked = Object.fromEntries(
+                Object.entries(states).map(([name, state]) => [name, state.deepUnpack()]));
+            events.push({t: now(), type: 'action-state', states: unpacked});
+        });
     Main.layoutManager.connect('startup-complete', () => Main.overview.hide());
 
     globalThis.petProbe = {
