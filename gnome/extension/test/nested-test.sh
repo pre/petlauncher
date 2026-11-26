@@ -205,7 +205,9 @@ finish_test() {
     fi
 }
 
-gnome-shell --headless --wayland --no-x11 --wayland-display="$WAYLAND_DISPLAY" \
+# The topic startup logs "Setting busy cursor" and "Setting default cursor"
+# in shell.log: the busy pointer of an activation token.
+MUTTER_DEBUG=startup gnome-shell --headless --wayland --no-x11 --wayland-display="$WAYLAND_DISPLAY" \
     $(for m in $MONITORS; do echo --virtual-monitor "$m"; done) \
     --automation-script="$here/shell-probe.js" >"$OUT/shell.log" 2>&1 &
 shell_pid=$!

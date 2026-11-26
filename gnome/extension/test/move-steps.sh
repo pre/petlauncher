@@ -12,6 +12,7 @@
 #   acceptance.tsv    step, PASS or FAIL, check, evidence file
 #   frames.tsv        step, the frame "x y width height" of the launcher
 #   launcher-*.png    screenshots of the launcher
+#   shell.log         (nested-test.sh) the busy pointer of Mutter
 #   events.json       (nested-test.sh) the map of each window and each
 #                     change of an action state, with their times
 
@@ -183,3 +184,30 @@ for run in 1 2 3; do
     keys Control_L+a BackSpace Escape
     sleep 0.5
 done
+
+# Each path to a show of the launcher maps it with no activation token, so
+# Mutter does not show the busy pointer.
+tray_click() {
+    local x y
+    read -r x y < <(shell_eval 'petProbe.state()' |
+        jq -r '.tray.extents | "\(.x + (.width / 2 | floor)) \(.y + (.height / 2 | floor))"')
+    shell_eval "petProbe.click($x, $y, 1)" >/dev/null
+    sleep 1.2
+}
+for run in 1 2 3; do
+    begin "show-paths-$run"
+    pointer_to_monitor 0
+    sleep 0.2
+    tray_click
+    expect "the top bar icon shows the launcher" shows
+    keys Escape
+    sleep 0.5
+    app_action $app show
+    sleep 1.2
+    expect "the action show shows the launcher" shows
+    keys Escape
+    sleep 0.5
+done
+begin no-busy-pointer
+expect "no show of the launcher set the busy pointer" \
+    eval "! grep -q 'STARTUP: Setting busy cursor' '$OUT/shell.log'"
