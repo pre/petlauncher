@@ -17,7 +17,7 @@ use crate::cli::{self, Command};
 use crate::dictionary_window;
 use crate::global_key::{self, FirstInstall};
 use crate::log;
-use crate::settings_window::{Host, SettingsWindow};
+use crate::settings_window::{Host, Page, SettingsWindow};
 use crate::window::LauncherWindow;
 
 pub const APP_ID: &str = "pet.repo.Petlauncher";
@@ -129,7 +129,7 @@ impl Program {
         let settings = gio::ActionEntry::builder("settings")
             .activate(move |_: &adw::Application, _, _| {
                 if let Some(program) = weak.upgrade() {
-                    program.present_settings();
+                    program.present_settings(None);
                 }
             })
             .build();
@@ -189,13 +189,14 @@ impl Program {
         }
     }
 
-    /// Shows the settings window. There is one for the process.
-    fn present_settings(self: &Rc<Self>) {
+    /// Shows the settings window, with `page` or with the page that it
+    /// showed last. There is one window for the process.
+    fn present_settings(self: &Rc<Self>, page: Option<Page>) {
         let window = Rc::clone(self.settings_window.borrow_mut().get_or_insert_with(|| {
             let host: Weak<dyn Host> = Rc::downgrade(self) as Weak<Program>;
             SettingsWindow::new(&self.app, Rc::clone(&self.backend), host)
         }));
-        window.present();
+        window.present(page);
     }
 
     /// The settings that the program applies itself: the width of the

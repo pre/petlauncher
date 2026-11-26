@@ -1,6 +1,7 @@
 //! The settings window: one window for the process, opened by the action
-//! `settings` (tray menu) and by Ctrl+comma in the launcher.
-//! `docs/settings-window.md` describes the pages and the decisions.
+//! `settings` (tray menu) and by Ctrl+comma in the launcher. The pages are
+//! in a list at the left edge. `docs/settings-window.md` describes the pages and
+//! the decisions.
 //!
 //! The window changes the files only through the editors of the store
 //! (R18): each change writes only its own value. The plain modules hold the
@@ -48,9 +49,40 @@ pub trait Host {
     fn global_key_changed(&self, key: Option<&str>) -> Result<(), String>;
 }
 
+/// A page of the window, in the order of the list at the left edge.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Page {
+    General,
+    GlobalKey,
+    Search,
+    Shortcuts,
+}
+
+impl Page {
+    pub const ALL: [Page; 4] = [
+        Page::General,
+        Page::GlobalKey,
+        Page::Search,
+        Page::Shortcuts,
+    ];
+
+    /// The name of the page in the list of pages, for example `global-key`.
+    pub fn name(self) -> &'static str {
+        match self {
+            Page::General => "general",
+            Page::GlobalKey => "global-key",
+            Page::Search => "search",
+            Page::Shortcuts => "shortcuts",
+        }
+    }
+}
+
 /// The state that the pages share.
 pub(crate) struct Context {
-    pub window: adw::PreferencesWindow,
+    pub window: adw::ApplicationWindow,
+    /// The pages, and above them a subpage such as the form of a shortcut.
+    pub navigation: adw::NavigationView,
+    toasts: adw::ToastOverlay,
     pub backend: Rc<Backend>,
     host: Weak<dyn Host>,
     /// True while the window shows the values of the files. The signal
@@ -124,7 +156,7 @@ impl Context {
             .use_markup(false)
             .timeout(6)
             .build();
-        self.window.add_toast(toast);
+        self.toasts.add_toast(toast);
     }
 
     /// Shows the values again in an idle, so that a handler does not remove
@@ -139,6 +171,9 @@ impl Context {
 /// The window and its pages.
 pub struct SettingsWindow {
     context: Rc<Context>,
+    sidebar: gtk::ListBox,
+    /// The navigation page of the list and the pages, below the subpages.
+    root: adw::NavigationPage,
     general: general_page::GeneralPage,
     key: key_page::KeyPage,
     search: search_page::SearchPage,
@@ -147,37 +182,87 @@ pub struct SettingsWindow {
 
 impl SettingsWindow {
     pub fn new(app: &adw::Application, backend: Rc<Backend>, host: Weak<dyn Host>) -> Rc<Self> {
-        let window = adw::PreferencesWindow::builder()
+        let window = adw::ApplicationWindow::builder()
             .application(app)
             .title(TITLE)
-            // The template of AdwPreferencesWindow makes it modal. A modal
-            // window gets the keys of the launcher, so Escape in the
-            // launcher would close this window.
-            .modal(false)
-            .destroy_with_parent(false)
-            .default_width(720)
+            .default_width(900)
             .default_height(760)
             .hide_on_close(true)
             .build();
+        let navigation = adw::NavigationView::new();
+        let toasts = adw::ToastOverlay::new();
+        toasts.set_child(Some(&navigation));
+        window.set_content(Some(&toasts));
         let context = Rc::new(Context {
             window: window.clone(),
+            navigation,
+            toasts,
             backend,
             host,
             loading: Cell::new(false),
             reload: RefCell::default(),
         });
-        let this = Rc::new(Self {
-            general: general_page::GeneralPage::new(&context),
-            key: key_page::KeyPage::new(&context),
-            search: search_page::SearchPage::new(&context),
-            shortcuts: shortcuts_page::ShortcutsPage::new(&context),
-            context,
-        });
-        window.add(&this.general.page);
-        window.add(&this.key.page);
-        window.add(&this.search.page);
-        window.add(&this.shortcuts.page);
+        let general = general_page::GeneralPage::new(&context);
+        let key = key_page::KeyPage::new(&context);
+        let search = search_page::SearchPage::new(&context);
+        let shortcuts = shortcuts_page::ShortcutsPage::new(&context);
 
+        let stack = gtk::Stack::new();
+        let sidebar = gtk::ListBox::builder()
+            .css_classes(["navigation-sidebar"])
+            .build();
+        for (page, widget) in
+            Page::ALL
+                .into_iter()
+                .zip([&general.page, &key.page, &search.page, &shortcuts.page])
+        {
+            stack.add_named(widget, Some(page.name()));
+            sidebar.append(&sidebar_row(widget));
+        }
+        let pages = adw::NavigationPage::builder()
+            .title(general.page.title())
+            .child(&with_header(&stack))
+            .build();
+        let split = adw::NavigationSplitView::builder()
+            .sidebar(
+                &adw::NavigationPage::builder()
+                    .title("Settings")
+                    .child(&with_header(
+                        &gtk::ScrolledWindow::builder()
+                            .hscrollbar_policy(gtk::PolicyType::Never)
+                            .child(&sidebar)
+                            .build(),
+                    ))
+                    .build(),
+            )
+            .content(&pages)
+            .build();
+        let root = adw::NavigationPage::builder()
+            .title(TITLE)
+            .child(&split)
+            .build();
+        context.navigation.add(&root);
+        let shown = pages.clone();
+        sidebar.connect_row_selected(move |_, row| {
+            let Some(page) = row.and_then(|row| usize::try_from(row.index()).ok()) else {
+                return;
+            };
+            stack.set_visible_child_name(Page::ALL[page].name());
+            if let Some(child) = stack.visible_child().and_downcast::<adw::PreferencesPage>() {
+                shown.set_title(&child.title());
+            }
+        });
+        sidebar.select_row(sidebar.row_at_index(0).as_ref());
+
+        let this = Rc::new(Self {
+            context,
+            sidebar,
+            root,
+            general,
+            key,
+            search,
+            shortcuts,
+        });
         let weak = Rc::downgrade(&this);
         this.context.reload.replace(Some(Box::new(move || {
             let weak = weak.clone();
@@ -201,12 +286,18 @@ impl SettingsWindow {
     }
 
     /// Shows the window with the values of the files and the key of GNOME
-    /// now (R4: the two places show the same key).
-    pub fn present(&self) {
+    /// now (R4: the two places show the same key). With `page`, the window
+    /// shows that page, also when a subpage was open.
+    pub fn present(&self, page: Option<Page>) {
         self.key.load(&self.context);
         self.reload();
+        if let Some(page) = page {
+            self.context.navigation.pop_to_page(&self.root);
+            let row = self.sidebar.row_at_index(page as i32);
+            self.sidebar.select_row(row.as_ref());
+        }
         self.context.window.present();
-        log::debug("settings window: show");
+        log::debug(format_args!("settings window: show, page {page:?}"));
     }
 
     /// Shows the values in effect. The program calls it after a change of a
@@ -218,5 +309,43 @@ impl SettingsWindow {
         self.search.reload(&self.context);
         self.shortcuts.reload(&self.context);
         self.context.loading.set(false);
+    }
+}
+
+/// A row of the list at the left edge: the icon and the full title of the
+/// page.
+fn sidebar_row(page: &adw::PreferencesPage) -> gtk::ListBoxRow {
+    let line = gtk::Box::builder().spacing(12).build();
+    line.append(&gtk::Image::from_icon_name(
+        &page.icon_name().unwrap_or_default(),
+    ));
+    line.append(
+        &gtk::Label::builder()
+            .label(page.title())
+            .xalign(0.0)
+            .build(),
+    );
+    let row = gtk::ListBoxRow::builder().child(&line).build();
+    row.update_property(&[gtk::accessible::Property::Label(&page.title())]);
+    row
+}
+
+/// The child with a header bar above it. The header bar shows the title of
+/// its navigation page.
+fn with_header(child: &impl IsA<gtk::Widget>) -> adw::ToolbarView {
+    let view = adw::ToolbarView::builder().content(child).build();
+    view.add_top_bar(&adw::HeaderBar::new());
+    view
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn the_list_order_is_the_order_of_the_enum() {
+        for (index, page) in Page::ALL.into_iter().enumerate() {
+            assert_eq!(page as usize, index);
+        }
     }
 }

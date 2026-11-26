@@ -179,7 +179,7 @@ impl FormPage {
             "settings window: form, {:?}",
             this.form.borrow().target
         ));
-        context.window.push_subpage(&this.page);
+        context.navigation.push(&this.page);
         this.name.grab_focus();
         this
     }
@@ -343,7 +343,7 @@ impl FormPage {
     fn after(&self, context: &Context, result: Result<(), EditError>, done: &str) {
         match result {
             Ok(()) => {
-                context.window.pop_subpage();
+                context.navigation.pop();
                 context.toast(done);
             }
             Err(error) => {
