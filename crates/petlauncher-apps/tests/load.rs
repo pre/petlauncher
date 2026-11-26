@@ -450,8 +450,11 @@ fn gives_the_command_of_a_browser_with_the_url() {
 
     let edge = apps.browsers()[0];
     assert_eq!(
-        edge.command(Some("https://github.com/LOLm/cat/pulls")),
-        ["microsoft-edge-stable", "https://github.com/LOLm/cat/pulls"]
+        edge.command(Some("https://github.com/pre/rektangel/pulls")),
+        [
+            "microsoft-edge-stable",
+            "https://github.com/pre/rektangel/pulls"
+        ]
     );
 }
 

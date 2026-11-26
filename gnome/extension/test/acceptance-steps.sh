@@ -107,12 +107,12 @@ hide_launcher
 begin R7.1
 query 'rektangel 123'
 keys Return
-expect "the browser opens the pull request" launches.log launched "browser | https://github.com/LOLm/cat/pull/123"
+expect "the browser opens the pull request" launches.log launched "browser | https://github.com/pre/rektangel/pull/123"
 
 begin R7.2
 query 'rektangel'
 keys Return
-expect "the browser opens the list of pull requests" launches.log launched "browser | https://github.com/LOLm/cat/pulls"
+expect "the browser opens the list of pull requests" launches.log launched "browser | https://github.com/pre/rektangel/pulls"
 
 # ----------------------------------------------------------------- R8
 

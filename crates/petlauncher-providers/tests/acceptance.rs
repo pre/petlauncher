@@ -79,8 +79,8 @@ fn r7_a_shortcut_opens_target_a_with_an_argument_and_target_b_without_one() {
         "[[shortcut]]\n\
          name = \"Rektangel pull requests\"\n\
          keyword = \"rektangel\"\n\
-         cmd = \"https://github.com/LOLm/cat/pull/%s\"\n\
-         cmd_without_argument = \"https://github.com/LOLm/cat/pulls\"\n",
+         cmd = \"https://github.com/pre/rektangel/pull/%s\"\n\
+         cmd_without_argument = \"https://github.com/pre/rektangel/pulls\"\n",
     );
     let launcher = fixture.start();
 
@@ -95,13 +95,13 @@ fn r7_a_shortcut_opens_target_a_with_an_argument_and_target_b_without_one() {
         launcher
             .activate(&with_argument, with_argument.selected, Key::Enter)
             .action,
-        url("https://github.com/LOLm/cat/pull/123")
+        url("https://github.com/pre/rektangel/pull/123")
     );
     assert_eq!(
         launcher
             .activate(&without_argument, without_argument.selected, Key::Enter)
             .action,
-        url("https://github.com/LOLm/cat/pulls")
+        url("https://github.com/pre/rektangel/pulls")
     );
 }
 

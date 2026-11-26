@@ -10,8 +10,8 @@ fn rektangel() -> Shortcut {
     Shortcut {
         name: "Rektangel pull request".into(),
         keyword: "rektangel".into(),
-        cmd: "https://github.com/LOLm/cat/pull/%s".into(),
-        cmd_without_argument: "https://github.com/LOLm/cat/pulls".into(),
+        cmd: "https://github.com/pre/rektangel/pull/%s".into(),
+        cmd_without_argument: "https://github.com/pre/rektangel/pulls".into(),
         ..Shortcut::default()
     }
 }
@@ -47,7 +47,10 @@ fn r7_step1_rektangel_with_a_number_opens_that_pull_request() {
     let outcome = activate(&results, results.selected, Key::Enter);
 
     assert_eq!(results.mode, Mode::Shortcut);
-    assert_eq!(outcome.action, url("https://github.com/LOLm/cat/pull/123"));
+    assert_eq!(
+        outcome.action,
+        url("https://github.com/pre/rektangel/pull/123")
+    );
     assert!(outcome.close);
     assert!(!outcome.keep_query);
 }
@@ -62,7 +65,10 @@ fn r7_step2_rektangel_with_no_argument_opens_the_list_of_pull_requests() {
 
         let outcome = activate(&results, results.selected, Key::Enter);
 
-        assert_eq!(outcome.action, url("https://github.com/LOLm/cat/pulls"));
+        assert_eq!(
+            outcome.action,
+            url("https://github.com/pre/rektangel/pulls")
+        );
     }
 }
 
@@ -115,7 +121,7 @@ fn r6_the_keyword_ignores_letter_case() {
 
     assert_eq!(
         results.rows[0].enter,
-        url("https://github.com/LOLm/cat/pull/9")
+        url("https://github.com/pre/rektangel/pull/9")
     );
 }
 

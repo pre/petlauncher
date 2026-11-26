@@ -94,8 +94,8 @@ icon = "web-browser"
 [[shortcut]]
 name = "Rektangel pull request"
 keyword = "rektangel"
-cmd = "https://github.com/LOLm/cat/pull/%s"
-cmd_without_argument = "https://github.com/LOLm/cat/pulls"
+cmd = "https://github.com/pre/rektangel/pull/%s"
+cmd_without_argument = "https://github.com/pre/rektangel/pulls"
 
 [[shortcut]]
 name = "Search with Edge"
