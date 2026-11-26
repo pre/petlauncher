@@ -1,0 +1,32 @@
+# Shortcuts of petlauncher. Each [[shortcut]] block is one shortcut.
+#
+# petlauncher reads this file again when you save it. If the file has an
+# error, the old shortcuts stay in effect and petlauncher shows the error.
+# The settings window changes only the values in this file. Your comments
+# stay.
+#
+# The keys of a shortcut:
+#   name                  The text of the row.
+#   keyword               The word that starts the shortcut, for example
+#                         "jira". The query "jira 123" gives the argument
+#                         "123".
+#   cmd                   A URL or a script. "%s" becomes the argument. A
+#                         script also gets the argument as $1.
+#   cmd_without_argument  The URL or the script for a query with no
+#                         argument. Empty: "run_without_argument" decides.
+#   run_without_argument  true: a query with no argument runs "cmd".
+#                         false: the shortcut needs an argument.
+#   is_default_search     true: the shortcut also shows when no other row
+#                         matches, with the full query as the argument.
+#   icon                  The icon of the row: an icon name or a file path.
+#   browser               The browser for a URL, as { app = "<desktop
+#                         entry>" } or { command = "<command>" }. No
+#                         browser key: the default browser.
+#
+# Example:
+#
+# [[shortcut]]
+# name = "Pull request"
+# keyword = "pr"
+# cmd = "https://github.com/example/project/pull/%s"
+# cmd_without_argument = "https://github.com/example/project/pulls"

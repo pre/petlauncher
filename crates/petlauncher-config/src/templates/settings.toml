@@ -1,0 +1,55 @@
+# Settings of petlauncher.
+#
+# petlauncher reads this file again when you save it. If the file has an
+# error, the old settings stay in effect and petlauncher shows the error.
+# The settings window changes only the values in this file. Your comments
+# stay.
+
+# Close the window when a different window gets the focus.
+close_on_focus_loss = true
+
+# Keep petlauncher in operation after the window closes, so that the window
+# opens quickly. petlauncher also starts at login.
+run_in_background = true
+
+# Show the petlauncher icon in the top bar.
+show_tray_icon = true
+
+# Show the installed applications in the search results.
+include_applications = true
+
+# The key that shows and hides petlauncher, in the GNOME key syntax.
+hotkey = "<Super>space"
+
+# The width of the window in pixels, from 300 to 7680.
+window_width = 750
+
+# How long petlauncher keeps the last query after the window closes:
+# "disabled", "forever", seconds such as "30s", or minutes such as "5m".
+keep_query = "30s"
+
+[file_search]
+# The query "<keyword> <text>" finds the files whose names match <text>.
+keyword = "f"
+# The directories that the file search examines. "~" is your home
+# directory.
+directories = ["~"]
+# The file search does not examine these items. An item is a path such as
+# "~/tmp", a directory name such as "node_modules", or a pattern for a
+# directory name such as "*-wt".
+ignore = [
+    "node_modules",
+    "target",
+    "__pycache__",
+    "~/go/pkg/mod",
+    "~/tmp",
+    "git-worktrees",
+    "*-wt",
+]
+
+[dictionary]
+# The query "<keyword> <word>" finds the word in the dictionary.
+keyword = "d"
+# The directory with the WordNet files, for example "index.noun" and
+# "data.noun".
+wordnet_path = "/usr/share/wordnet"
