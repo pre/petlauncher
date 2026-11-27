@@ -34,6 +34,7 @@ if [[ $prefix =~ [^A-Za-z0-9_./+-] ]]; then
     echo "use a prefix with no spaces or special characters: $prefix" >&2
     exit 2
 fi
+command -v jq >/dev/null || { echo "install jq first: sudo apt install jq" >&2; exit 2; }
 
 bin=$prefix/bin
 applications=$prefix/share/applications
@@ -59,6 +60,14 @@ EOF
 mkdir -p "$extensions"
 rm -rf "${extensions:?}/$uuid"
 cp -r "$repo/gnome/extension/$uuid" "$extensions/"
+
+# The release workflow writes the release version to version-name. An install
+# from a git checkout gets git-<commit>, so the extension apps show the build.
+if commit=$(git -C "$repo" rev-parse --short HEAD 2>/dev/null); then
+    metadata=$extensions/$uuid/metadata.json
+    jq --arg v "git-$commit" '. + {"version-name": $v}' "$metadata" >"$metadata.tmp"
+    mv "$metadata.tmp" "$metadata"
+fi
 
 echo
 echo "Installed:"

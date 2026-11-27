@@ -6,6 +6,7 @@ petlauncher installs for one user, with no root. The target is GNOME Shell 46 on
 
 - Rust and cargo.
 - The packages `libgtk-4-dev` and `libadwaita-1-dev` (GTK 4.14 and libadwaita 1.5).
+- The package `jq`. The script writes the version of the extension with it.
 - GNOME Shell 46. The extension of petlauncher is for this version only.
 
 ## Install
@@ -23,6 +24,8 @@ The script builds the release binary and installs three items below the prefix `
 | The GNOME Shell extension | `~/.local/share/gnome-shell/extensions/petlauncher@repo.pet` |
 
 `scripts/install.sh --prefix DIR` installs below a different prefix, for example a directory below `$HOME/tmp` for a test. The prefix must have no spaces.
+
+From a git checkout, the script writes `git-<commit>` to `version-name` in the `metadata.json` of the installed extension. The extension apps show it as the version. A release zip has the release version there, see [release.md](release.md). GNOME Shell reads `metadata.json` at login, so a new version shows after the next login.
 
 The script changes no settings. Do these steps by hand after it:
 
