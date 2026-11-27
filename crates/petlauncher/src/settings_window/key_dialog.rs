@@ -44,9 +44,6 @@ struct KeyDialog {
     conflicts: gtk::ListBox,
     state: RefCell<HotkeyState>,
     context: Weak<Context>,
-    /// The surface that pauses the shortcuts of GNOME Shell, and the handler
-    /// of its state.
-    inhibited: RefCell<Option<(gdk::Toplevel, glib::SignalHandlerId)>>,
 }
 
 impl KeyDialog {
@@ -90,10 +87,10 @@ impl KeyDialog {
             conflicts,
             state: RefCell::new(state),
             context: Rc::downgrade(context),
-            inhibited: RefCell::default(),
         });
         this.connect();
-        this.show_inhibited(false);
+        this.pause_shell_shortcuts();
+        show_inhibited(&this.inhibit, false);
         this.show();
         this
     }
@@ -119,18 +116,6 @@ impl KeyDialog {
         self.dialog.add_controller(controller);
 
         let weak = Rc::downgrade(self);
-        self.dialog.connect_map(move |_| {
-            if let Some(this) = weak.upgrade() {
-                this.inhibit_shortcuts();
-            }
-        });
-        let weak = Rc::downgrade(self);
-        self.dialog.connect_unmap(move |_| {
-            if let Some(this) = weak.upgrade() {
-                this.restore_shortcuts();
-            }
-        });
-        let weak = Rc::downgrade(self);
         self.dialog.connect_response(Some("set"), move |_, _| {
             if let Some(this) = weak.upgrade() {
                 this.set();
@@ -138,42 +123,38 @@ impl KeyDialog {
         });
     }
 
-    fn inhibit_shortcuts(self: &Rc<Self>) {
-        let Some(toplevel) = self
-            .dialog
-            .native()
-            .and_then(|native| native.surface())
-            .and_downcast::<gdk::Toplevel>()
-        else {
-            return;
-        };
-        toplevel.inhibit_system_shortcuts(None::<&gdk::Event>);
-        self.show_inhibited(toplevel.is_shortcuts_inhibited());
-        let weak = Rc::downgrade(self);
-        let handler = toplevel.connect_shortcuts_inhibited_notify(move |toplevel| {
-            if let Some(this) = weak.upgrade() {
-                this.show_inhibited(toplevel.is_shortcuts_inhibited());
-            }
+    /// The pause is on the surface of the settings window, because the
+    /// dialog shows inside that window. The handlers of the map and the
+    /// unmap keep the paused surface themselves: the last reference to
+    /// `KeyDialog` goes at the response, before the unmap. Without the
+    /// stop at the unmap, GNOME Shell ignores its keys, also the global key
+    /// of petlauncher, while the settings window has the focus.
+    fn pause_shell_shortcuts(&self) {
+        let paused: Rc<RefCell<Option<(gdk::Toplevel, glib::SignalHandlerId)>>> = Rc::default();
+        let at_map = Rc::clone(&paused);
+        let label = self.inhibit.clone();
+        self.dialog.connect_map(move |dialog| {
+            let Some(toplevel) = dialog
+                .native()
+                .and_then(|native| native.surface())
+                .and_downcast::<gdk::Toplevel>()
+            else {
+                return;
+            };
+            toplevel.inhibit_system_shortcuts(None::<&gdk::Event>);
+            show_inhibited(&label, toplevel.is_shortcuts_inhibited());
+            let label = label.clone();
+            let handler = toplevel.connect_shortcuts_inhibited_notify(move |toplevel| {
+                show_inhibited(&label, toplevel.is_shortcuts_inhibited());
+            });
+            at_map.replace(Some((toplevel, handler)));
         });
-        self.inhibited.replace(Some((toplevel, handler)));
-    }
-
-    fn restore_shortcuts(&self) {
-        if let Some((toplevel, handler)) = self.inhibited.take() {
-            toplevel.restore_system_shortcuts();
-            toplevel.disconnect(handler);
-        }
-    }
-
-    fn show_inhibited(&self, inhibited: bool) {
-        log::debug(format_args!(
-            "settings window: shortcuts of GNOME Shell paused {inhibited}"
-        ));
-        self.inhibit.set_label(if inhibited {
-            "GNOME Shell pauses its shortcuts, so all keys come to this dialog."
-        } else {
-            "GNOME Shell did not pause its shortcuts. When a key press does not show here, \
-             GNOME Shell uses that key."
+        self.dialog.connect_unmap(move |_| {
+            if let Some((toplevel, handler)) = paused.take() {
+                toplevel.restore_system_shortcuts();
+                toplevel.disconnect(handler);
+                log::debug("settings window: shortcuts of GNOME Shell restored");
+            }
         });
     }
 
@@ -276,6 +257,18 @@ impl KeyDialog {
         }
         context.reload_later();
     }
+}
+
+fn show_inhibited(label: &gtk::Label, inhibited: bool) {
+    log::debug(format_args!(
+        "settings window: shortcuts of GNOME Shell paused {inhibited}"
+    ));
+    label.set_label(if inhibited {
+        "GNOME Shell pauses its shortcuts, so all keys come to this dialog."
+    } else {
+        "GNOME Shell did not pause its shortcuts. When a key press does not show here, \
+         GNOME Shell uses that key."
+    });
 }
 
 fn label(classes: &[&str]) -> gtk::Label {

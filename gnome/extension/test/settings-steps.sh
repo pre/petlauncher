@@ -111,6 +111,18 @@ expect() {
 
 windows_state() { shell_eval 'petProbe.state()'; }
 window_shows() { windows_state | jq -e --arg t "$1" 'any(.windows[]; .title == $t)'; }
+window_focused() { windows_state | jq -e --arg t "$1" 'any(.windows[]; .title == $t and .focus)'; }
+# GNOME Shell gets its key Super+F9: the window with the focus does not
+# pause the shortcuts of GNOME Shell.
+shell_gets_key() {
+    local before after
+    before=$(shell_eval 'petProbe.shellKeyPresses()')
+    keys Super_L+F9
+    after=$(shell_eval 'petProbe.shellKeyPresses()')
+    echo "$step: GNOME Shell got Super+F9 $before times before, $after times after" \
+        >>"$OUT/commands.txt"
+    [[ $after -gt $before ]]
+}
 window_hidden() { ! window_shows "$1"; }
 frame_of() { # title -> "x y width height"
     windows_state | jq -r --arg t "$1" \
@@ -259,6 +271,8 @@ touch "$launches"
 "$PROGRAM" --version >>"$OUT/versions.txt"
 echo "GTK $(pkg-config --modversion gtk4), libadwaita $(pkg-config --modversion libadwaita-1)" >>"$OUT/versions.txt"
 shell_eval 'petProbe.prepareKeyboard()' >/dev/null
+# A key of GNOME Shell, as gsd-media-keys takes the global key of petlauncher.
+shell_eval "petProbe.grabShellKey('<Super>F9')" >/dev/null
 sleep 1
 
 # R4 writes GNOME settings. Before the first start, prove that the default
@@ -371,6 +385,7 @@ tree r4-page
 shot settings-r4-page
 expect "the row shows that petlauncher has no key" a11y-r4-page.txt \
     tree_has "push button 'Set shortcut…'"
+expect "GNOME Shell gets its keys before the dialog" commands.txt shell_gets_key
 click 'push button' 'Set shortcut…'
 allow_inhibit
 tree r4-conflicts
@@ -404,6 +419,8 @@ expect "no key of petlauncher before Set" keyfile-after-remove.ini \
 expect "Set is on with no conflict" a11y-r4-no-conflict.txt is_sensitive 'push button' Set
 click 'push button' Set
 sleep 1
+expect "the settings window has the focus after Set" app-program.log window_focused "$title"
+expect "GNOME Shell gets its keys again after Set" commands.txt shell_gets_key
 keyfile >"$OUT/keyfile-after-set.ini"
 cp "$config/settings.toml" "$OUT/settings-after-set.toml"
 tree r4-set
@@ -447,6 +464,7 @@ allow_inhibit
 keys Escape
 sleep 0.8
 expect "Escape closes the dialog" app-program.log tree_lacks "label 'Set the Global Key'"
+expect "GNOME Shell gets its keys again after Escape" commands.txt shell_gets_key
 click 'push button' 'Ctrl+Super+K'
 allow_inhibit
 keys BackSpace

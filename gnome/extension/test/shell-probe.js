@@ -13,6 +13,7 @@
 import Clutter from 'gi://Clutter';
 import Gio from 'gi://Gio';
 import GLib from 'gi://GLib';
+import Meta from 'gi://Meta';
 import Shell from 'gi://Shell';
 import St from 'gi://St';
 
@@ -24,6 +25,10 @@ const TRAY_ROLE = 'petlauncher@repo.pet';
 let pointer = null;
 let keyboard = null;
 let clipboardText = null;
+// The key that grabShellKey() took, and the number of its presses that
+// GNOME Shell got.
+let shellKey = Meta.KeyBindingAction.NONE;
+let shellKeyPresses = 0;
 let finish = null;
 const events = [];
 // MetaWindow -> time of its map, or null before the map.
@@ -209,6 +214,18 @@ function type(text) {
         pressAndRelease([Clutter.unicode_to_keysym(character.codePointAt(0))]);
 }
 
+// Takes a key in GNOME Shell as gsd-media-keys takes the key of a custom
+// shortcut: org.gnome.Shell.GrabAccelerator does these two calls. The shell
+// gets the key only when the focused window does not pause its shortcuts.
+function grabShellKey(accelerator) {
+    shellKey = global.display.grab_accelerator(accelerator, Meta.KeyBindingFlags.NONE);
+    if (shellKey === Meta.KeyBindingAction.NONE)
+        throw new Error(`GNOME Shell did not take ${accelerator}`);
+    Main.wm.allowKeybinding(Meta.external_binding_name_for_action(shellKey),
+        Shell.ActionMode.NORMAL);
+    shellKeyPresses = 0;
+}
+
 // Puts the text on the clipboard, for a paste with Control+V.
 function setClipboard(text) {
     St.Clipboard.get_default().set_text(St.ClipboardType.CLIPBOARD, text);
@@ -322,6 +339,10 @@ export function init() {
             events.push({t: now(), type: 'action-state', states: unpacked});
         });
     Main.layoutManager.connect('startup-complete', () => Main.overview.hide());
+    global.display.connect('accelerator-activated', (_display, action) => {
+        if (action === shellKey)
+            shellKeyPresses++;
+    });
 
     globalThis.petProbe = {
         state,
@@ -336,6 +357,8 @@ export function init() {
         prepareKeyboard,
         keys,
         type,
+        grabShellKey,
+        shellKeyPresses: () => shellKeyPresses,
         setClipboard,
         readClipboard,
         clipboard: () => clipboardText,
