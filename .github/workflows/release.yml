@@ -1,0 +1,47 @@
+# Packs petlauncher@repo.pet.zip for a DRAFT release. scripts/release-github
+# creates a draft pinned to HEAD with generated notes and dispatches this
+# workflow, which tests the extension, packs the zip with the release version in
+# version-name and attaches the zip to the draft. The same zip goes to
+# extensions.gnome.org. Publishing the reviewed draft creates the tag.
+name: release
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Tag of the draft release (vX.Y.Z)
+        required: true
+      sha:
+        description: Commit the draft release is pinned to
+        required: true
+
+# The upload to the draft release needs write access to the contents.
+permissions:
+  contents: write
+
+jobs:
+  pack-and-attach:
+    runs-on: ubuntu-24.04
+    env:
+      TAG: ${{ inputs.tag }}
+      EXTENSION: gnome/extension/petlauncher@repo.pet
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          # The draft has no tag yet; build exactly the commit it is pinned to.
+          ref: ${{ inputs.sha }}
+      - run: sudo apt-get update && sudo apt-get install -y --no-install-recommends gjs zip
+      - run: gjs -m gnome/extension/test/test-launcher.js
+      - name: Set version-name in metadata.json
+        run: |
+          jq --arg v "${TAG#v}" '. + {"version-name": $v}' "$EXTENSION/metadata.json" > metadata.json.tmp
+          mv metadata.json.tmp "$EXTENSION/metadata.json"
+      - name: Pack the zip
+        run: |
+          (cd "$EXTENSION" && zip -r -X "$GITHUB_WORKSPACE/petlauncher@repo.pet.zip" .)
+          zip -j -X petlauncher@repo.pet.zip LICENSE
+      - name: Attach the zip to the draft
+        env:
+          GH_TOKEN: ${{ github.token }}
+        # gh resolves drafts by tag name (falls back to the release list).
+        run: gh release upload "$TAG" petlauncher@repo.pet.zip --repo "$GITHUB_REPOSITORY" --clobber

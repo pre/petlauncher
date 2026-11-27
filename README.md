@@ -31,6 +31,7 @@ Install the packages `libgtk-4-dev` and `libadwaita-1-dev` and the command runne
 | `just lint` | Checks the format and the lints. |
 | `just install` | Builds and installs for the current user, with no root. See [docs/install.md](docs/install.md). |
 | `just uninstall` | Removes the installed files. |
+| `just release v1.2.3` | Makes a draft GitHub release. See [docs/release.md](docs/release.md). |
 
 ## License
 

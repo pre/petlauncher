@@ -23,3 +23,7 @@ install *ARGS:
 # Removes the installed files. ARGS go to scripts/uninstall.sh.
 uninstall *ARGS:
     scripts/uninstall.sh {{ ARGS }}
+
+# Makes a draft GitHub release at HEAD. ARGS go to scripts/release-github, for example v0.1.0 or patch.
+release *ARGS:
+    scripts/release-github {{ ARGS }}
