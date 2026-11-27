@@ -37,7 +37,7 @@ export const COLLAPSED_HEIGHT = 64;
  */
 export const TOP_MARGIN = 24;
 
-const MODES = ['center', 'upper-third', 'top', 'custom'];
+const MODES = ['top', 'upper-quarter', 'upper-third', 'center', 'custom'];
 
 /**
  * The setting `window_position` from the state of the action
@@ -56,6 +56,8 @@ export function positionSetting(state) {
 // The top of the query line below the top of the work area.
 function queryLineTop(position, height) {
     switch (position.mode) {
+    case 'upper-quarter':
+        return Math.max(0, Math.floor(height / 4 - COLLAPSED_HEIGHT / 2));
     case 'upper-third':
         return Math.max(0, Math.floor(height / 3 - COLLAPSED_HEIGHT / 2));
     case 'top':

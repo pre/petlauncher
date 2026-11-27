@@ -128,17 +128,30 @@ fn the_window_position_and_a_pinned_place_go_through_the_file() {
     assert_eq!(store.settings().window_position, WindowPosition::Center);
     assert_eq!(store.settings().custom_position, None);
 
-    store
-        .edit_settings(|editor| editor.set_window_position(WindowPosition::UpperThird))
-        .expect("edit");
-    let upper_third = load_settings(dir.path()).expect("settings");
+    let mut fixed = Vec::new();
+    for (position, name) in [
+        (WindowPosition::Top, "top"),
+        (WindowPosition::UpperQuarter, "upper-quarter"),
+        (WindowPosition::UpperThird, "upper-third"),
+        (WindowPosition::Center, "center"),
+    ] {
+        store
+            .edit_settings(|editor| editor.set_window_position(position))
+            .expect("edit");
+        let text = fs::read_to_string(ConfigFile::Settings.path_in(dir.path())).expect("read");
+        let loaded = load_settings(dir.path()).expect("settings");
+        fixed.push((
+            loaded.window_position == position,
+            text.contains(&format!("window_position = \"{name}\"\n")),
+        ));
+    }
     store
         .edit_settings(|editor| editor.pin_position(CustomPosition { x: 0.25, y: 0.125 }))
         .expect("edit");
     let pinned = load_settings(dir.path()).expect("settings");
     let text = fs::read_to_string(ConfigFile::Settings.path_in(dir.path())).expect("read");
 
-    assert_eq!(upper_third.window_position, WindowPosition::UpperThird);
+    assert_eq!(fixed, [(true, true); 4]);
     assert_eq!(pinned.window_position, WindowPosition::Custom);
     assert_eq!(
         pinned.custom_position,

@@ -177,6 +177,15 @@ test('puts the query line at one third of the work area for upper-third', () => 
     assertEqual(position, {x: 1129, y: 553});
 });
 
+test('puts the query line at one quarter of the work area for upper-quarter', () => {
+    const size = {width: 750, height: COLLAPSED_HEIGHT};
+
+    const first = launcherPosition(size, WORK_AREAS[0], {mode: 'upper-quarter'});
+    const second = launcherPosition(size, WORK_AREAS[1], {mode: 'upper-quarter'});
+
+    assertEqual([first, second], [{x: 1129, y: 415}, {x: 3593, y: 502}]);
+});
+
 test('puts the launcher below the top bar with a margin for top', () => {
     const size = {width: 750, height: COLLAPSED_HEIGHT};
 
@@ -217,12 +226,14 @@ test('gives the fractions of a frame that open the launcher at the same frame ag
 });
 
 test('reads the position setting from the action state, with center as the default', () => {
-    const states = [['top', 0, 0], ['custom', 0.25, 0.1], ['sideways', 0, 0], null];
+    const states = [['top', 0, 0], ['upper-quarter', 0, 0], ['custom', 0.25, 0.1],
+        ['sideways', 0, 0], null];
 
     const settings = states.map(state => positionSetting(state));
 
     assertEqual(settings, [
         {mode: 'top', x: 0, y: 0},
+        {mode: 'upper-quarter', x: 0, y: 0},
         {mode: 'custom', x: 0.25, y: 0.1},
         {mode: 'center', x: 0, y: 0},
         {mode: 'center', x: 0, y: 0},

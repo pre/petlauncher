@@ -24,8 +24,8 @@ hotkey = "<Super>space"
 # The width of the window in pixels, from 300 to 7680.
 window_width = 750
 
-# The place of the window when it opens with no kept query: "center",
-# "upper-third", "top", or "custom" for custom_position. The GNOME Shell
+# The place of the window when it opens with no kept query: "top",
+# "upper-quarter", "upper-third", "center", or "custom" for custom_position. The GNOME Shell
 # extension of petlauncher puts the window there. The pin button of the
 # launcher writes custom_position.
 window_position = "center"

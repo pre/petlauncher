@@ -196,7 +196,8 @@ set_setting() { # key value: as an editor does, a new file and a rename
     mv "$config/settings.toml.new" "$config/settings.toml"
     sleep 1
 }
-for choice in center:1129,830:3593,568 upper-third:1129,553:3593,368 top:1129,56:3593,24; do
+for choice in top:1129,56:3593,24 upper-quarter:1129,415:3593,268 upper-third:1129,553:3593,368 \
+    center:1129,830:3593,568; do
     IFS=: read -r name m0 m1 <<<"$choice"
     set_setting window_position "\"$name\""
     for run in 1 2 3; do
@@ -305,4 +306,16 @@ click_widget 'petlauncher Settings' 'list item' General
 shell_eval "petProbe.screenshotWindow('petlauncher Settings', '$OUT/settings-general-position.png')" >/dev/null
 a11y tree 'petlauncher Settings' >"$OUT/a11y-settings-general.txt" 2>&1
 expect "the General page has the row Position with Custom" grep -q "Position" "$OUT/a11y-settings-general.txt"
+# The choices of Position are in the order of their places on the screen,
+# from the top down. The pin above made Custom available.
+click_widget 'petlauncher Settings' 'combo box' Position
+a11y tree 'petlauncher Settings' >"$OUT/a11y-position-choices.txt" 2>&1
+shell_eval "petProbe.screenshot('$OUT/settings-position-choices.png')" >/dev/null
+choices=$(grep -oE "label '(Top|Upper quarter|Upper third|Center|Custom)'" \
+    "$OUT/a11y-position-choices.txt" | tr '\n' ,)
+echo "the labels of the Position choices: $choices" >>"$OUT/commands.txt"
+expect "the choices of Position go from the top down" \
+    eval "[[ \"$choices\" == *\"label 'Top',label 'Upper quarter',label 'Upper third',label 'Center',label 'Custom',\"* ]]"
+keys Escape
+sleep 0.5
 close_window 'petlauncher Settings'

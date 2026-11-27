@@ -41,7 +41,7 @@ The program adds these actions to the application, for example with `gio::Simple
 | `settings` | none | none | Show the settings window. |
 | `quit` | none | none | Stop the process, also when "Run in background" is on. |
 | `tray-icon` | none | boolean | The value of the setting `show_tray_icon`. Make the action disabled, so that nobody can activate it. Change its state each time the setting changes, also after a change of `settings.toml` in an editor (R18). |
-| `window-position` | none | `(sdd)` | ADR 0009: the setting `window_position` (`center`, `upper-third`, `top` or `custom`) and the fractions of `custom_position`, `0` when there is none. `custom` with no place gives `center`. Make the action disabled. Change its state after each change of `settings.toml`. |
+| `window-position` | none | `(sdd)` | ADR 0009: the setting `window_position` (`top`, `upper-quarter`, `upper-third`, `center` or `custom`) and the fractions of `custom_position`, `0` when there is none. `custom` with no place gives `center`. Make the action disabled. Change its state after each change of `settings.toml`. |
 | `launcher-moved` | `(dd)` | none | ADR 0009: the extension calls it after a move of the launcher by the owner, with the place as fractions of the work area of the monitor of the window: the horizontal center of the window and the top of the frame. The program shows the pin button, which writes the place to `settings.toml`. |
 | `kept-query-until` | none | int64 | ADR 0009: the wall-clock time in microseconds since 1970 until which a show of the launcher has the kept query of R9. `0`: no kept query. `-1`: no time limit. Make the action disabled. Change its state after each hide and after each change of `settings.toml`, but not at a show, because the extension reads it at the map. |
 
@@ -77,7 +77,7 @@ gdbus call --session --dest pet.repo.Petlauncher --object-path /pet/repo/Petlaun
 1. The extension connects to the signal `map` of `global.window_manager`. GNOME Shell emits it after the first buffer of a window, and before it paints the window for the first time.
 2. In the signal, the extension accepts the window only when its Wayland application ID (`get_wm_class()`) is `pet.repo.Petlauncher` and its title is `petlauncher`.
 3. When the owner moved the launcher in an earlier show, and the state of `kept-query-until` is later than the wall clock (`queryKept`), the extension uses the moved place (`movedPosition` in `launcher.js`, ADR 0009) and continues at step 5. A launcher that goes below the work area at that place moves up. When the show has no kept query, or the query line at the moved place is not fully in a work area, the extension forgets the moved place.
-4. Else it gets the monitor with the pointer (`global.display.get_current_monitor()`) and the work area of that monitor. The work area is the monitor without the top bar. It calculates the top left corner of the frame (`launcherPosition` in `launcher.js`) for the state of `window-position` (`positionSetting`). The top of the frame is the top of a launcher with the collapsed height at the place of the setting: at the vertical center for `center`, with its center at one third of the height for `upper-third`, `TOP_MARGIN` (24 pixels) below the top of the work area for `top`, and at the fraction `y` of the height for `custom`. The frame is at the horizontal center of the work area, or for `custom` its center is at the fraction `x` of the width. A launcher that goes below the work area moves up. The calculation rounds a half pixel down. The frame stays in the work area when it fits; when the window is larger than the work area, the top left corner stays in the work area.
+4. Else it gets the monitor with the pointer (`global.display.get_current_monitor()`) and the work area of that monitor. The work area is the monitor without the top bar. It calculates the top left corner of the frame (`launcherPosition` in `launcher.js`) for the state of `window-position` (`positionSetting`). The top of the frame is the top of a launcher with the collapsed height at the place of the setting: `TOP_MARGIN` (24 pixels) below the top of the work area for `top`, with its center at one quarter of the height for `upper-quarter` and at one third of the height for `upper-third`, at the vertical center for `center`, and at the fraction `y` of the height for `custom`. The frame is at the horizontal center of the work area, or for `custom` its center is at the fraction `x` of the width. A launcher that goes below the work area moves up. The calculation rounds a half pixel down. The frame stays in the work area when it fits; when the window is larger than the work area, the top left corner stays in the work area.
 5. It moves the window with `move_frame()`. The size does not change, so Mutter does the move at once.
 6. It activates the window with `Main.activateWindow()`.
 
@@ -203,17 +203,18 @@ With the animations on, GNOME plays its open animation: the first frame has an o
 
 The shell logs of all runs have no JavaScript error or warning.
 
-The unit test `test-launcher.js` has 21 tests for the position rules, the moved place, the window rule and the icon rule. All pass.
+The unit test `test-launcher.js` has 22 tests for the position rules, the moved place, the window rule and the icon rule. All pass.
 
 #### Moved launcher (ADR 0009)
 
-`test/move-steps.sh` moves the launcher with the virtual pointer: a press on the search icon, five moves, and a release. Each case runs 3 times. Run with the release build on 2026-11-26: 61 checks, 61 pass. The evidence directory of the run is not in the repository. It has `frames.tsv`, `events.json`, the program log and the screenshots `launcher-pin-button.png`, `launcher-pinned-m1.png` and `settings-general-position.png`.
+`test/move-steps.sh` moves the launcher with the virtual pointer: a press on the search icon, five moves, and a release. Each case runs 3 times. Run with the release build on 2026-11-26: 61 checks, 61 pass. A run on 2026-11-27 added the position `upper-quarter` and the order of the choices of Position in the settings window (Top, Upper quarter, Upper third, Center, Custom): 68 checks, 68 pass. The evidence directory of each run is not in the repository. It has `frames.tsv`, `events.json`, the program log and the screenshots `launcher-pin-button.png`, `launcher-pinned-m1.png` and `settings-general-position.png`, and from 2026-11-27 `settings-position-choices.png`.
 
 | Case | Frame on monitor 0 | Frame on monitor 1 |
 |---|---|---|
 | `center`, a show with no kept query | `1129,830` | `3593,568` |
-| `upper-third` | `1129,553` | `3593,368` |
 | `top` | `1129,56` | `3593,24` |
+| `upper-quarter` | `1129,415` | `3593,268` |
+| `upper-third` | `1129,553` | `3593,368` |
 | After a move by 300,-200 | `1429,630` | |
 | The next show with the kept query (pointer on monitor 1), and the show after it | `1429,630` | |
 | After the query was cleared, or after the keep time of 2 s | `1129,830` | |

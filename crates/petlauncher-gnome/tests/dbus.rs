@@ -298,11 +298,16 @@ fn the_window_position_action_gives_the_position_and_the_custom_place() {
 
     let start = actions.action_state(WINDOW_POSITION_ACTION);
     let top = state(WindowPosition::Top, Some(place));
+    let upper_quarter = state(WindowPosition::UpperQuarter, None);
     let custom = state(WindowPosition::Custom, Some(place));
     let no_place = state(WindowPosition::Custom, None);
 
     assert_eq!(start, Some(("center", 0.0, 0.0).to_variant()));
     assert_eq!(top, Some(("top", 0.0, 0.0).to_variant()));
+    assert_eq!(
+        upper_quarter,
+        Some(("upper-quarter", 0.0, 0.0).to_variant())
+    );
     assert_eq!(custom, Some(("custom", 0.25, 0.125).to_variant()));
     assert_eq!(no_place, Some(("center", 0.0, 0.0).to_variant()));
     assert!(!actions.is_action_enabled(WINDOW_POSITION_ACTION));

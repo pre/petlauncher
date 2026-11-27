@@ -14,12 +14,14 @@ use super::keep_time::{KeepTime, KeepUnit};
 use super::widgets::{open_button, FileErrorGroup, MessageRow};
 use super::Context;
 
-/// The choices of the row "Position". Custom is last, and it shows only
-/// when `settings.toml` has a pinned place.
-const POSITIONS: [(WindowPosition, &str); 4] = [
-    (WindowPosition::Center, "Center"),
-    (WindowPosition::UpperThird, "Upper third"),
+/// The choices of the row "Position", in the order of their places on the
+/// screen, from the top down. Custom is last, and it shows only when
+/// `settings.toml` has a pinned place.
+const POSITIONS: [(WindowPosition, &str); 5] = [
     (WindowPosition::Top, "Top"),
+    (WindowPosition::UpperQuarter, "Upper quarter"),
+    (WindowPosition::UpperThird, "Upper third"),
+    (WindowPosition::Center, "Center"),
     (WindowPosition::Custom, "Custom"),
 ];
 
@@ -239,19 +241,28 @@ impl GeneralPage {
             .set_active(settings.include_applications);
         self.width.set_value(f64::from(settings.window_width));
         let pinned = settings.custom_position.is_some();
-        let choices = if pinned { 4 } else { 3 };
-        if self.position.model().map(|model| model.n_items()) != Some(choices) {
-            let labels: Vec<&str> = POSITIONS[..choices as usize]
+        let choices = if pinned {
+            POSITIONS.len()
+        } else {
+            POSITIONS.len() - 1
+        };
+        if self.position.model().map(|model| model.n_items() as usize) != Some(choices) {
+            let labels: Vec<&str> = POSITIONS[..choices]
                 .iter()
                 .map(|(_, label)| *label)
                 .collect();
             self.position
                 .set_model(Some(&gtk::StringList::new(&labels)));
         }
-        let selected = POSITIONS[..choices as usize]
+        // ADR 0009: `custom` with no pinned place is the center.
+        let shown = match settings.window_position {
+            WindowPosition::Custom if !pinned => WindowPosition::Center,
+            position => position,
+        };
+        let selected = POSITIONS
             .iter()
-            .position(|(position, _)| *position == settings.window_position)
-            .unwrap_or(0);
+            .position(|(position, _)| *position == shown)
+            .unwrap_or_default();
         self.position.set_selected(selected as u32);
         self.position.set_subtitle(if pinned {
             ""

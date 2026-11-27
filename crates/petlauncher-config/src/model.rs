@@ -49,11 +49,14 @@ impl Default for Settings {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum WindowPosition {
-    /// The query line at the vertical center of the work area.
-    Center,
-    UpperThird,
     /// Below the top bar.
     Top,
+    /// The query line at one quarter of the height of the work area.
+    UpperQuarter,
+    /// The query line at one third of the height of the work area.
+    UpperThird,
+    /// The query line at the vertical center of the work area.
+    Center,
     /// The place in `custom_position`.
     Custom,
 }
@@ -62,9 +65,10 @@ impl WindowPosition {
     /// The text in `settings.toml`, for example `upper-third`.
     pub fn name(self) -> &'static str {
         match self {
-            Self::Center => "center",
-            Self::UpperThird => "upper-third",
             Self::Top => "top",
+            Self::UpperQuarter => "upper-quarter",
+            Self::UpperThird => "upper-third",
+            Self::Center => "center",
             Self::Custom => "custom",
         }
     }
