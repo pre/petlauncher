@@ -20,6 +20,11 @@ lint:
 install *ARGS:
     scripts/install.sh {{ ARGS }}
 
+# Installs as `install` does, then stops the running petlauncher and starts the new program with no window. ARGS go to both scripts, for example --prefix DIR.
+install-replace *ARGS:
+    scripts/install.sh {{ ARGS }}
+    scripts/restart.sh {{ ARGS }}
+
 # Removes the installed files. ARGS go to scripts/uninstall.sh.
 uninstall *ARGS:
     scripts/uninstall.sh {{ ARGS }}

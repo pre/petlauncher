@@ -46,7 +46,11 @@ The command `petlauncher toggle` of the global key needs `~/.local/bin` in the `
 
 ## Update
 
-Run `scripts/install.sh` again. Quit petlauncher with its top bar menu and start it again. A change of the extension has effect after the next log in.
+```sh
+just install-replace
+```
+
+The command runs `scripts/install.sh`, then `scripts/restart.sh`. `scripts/restart.sh` stops the running petlauncher (`gapplication action pet.repo.Petlauncher quit`) and waits until it stops. Then it starts `~/.local/bin/petlauncher --hidden`, as at login. The new program writes its log to the journal with the name `pet.repo.Petlauncher.desktop`, as at login. With "Run in background" off, the new program stops at once, and the script gives an error. A change of the extension has effect after the next log in.
 
 ## Uninstall
 
